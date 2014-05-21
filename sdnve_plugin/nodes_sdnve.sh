@@ -21,15 +21,14 @@ fi
 for n in ${COMPUTES[@]}; do
     echo ">>>Copy files to compute node $n"
     scp -r ${DIR} $n:/root/ >/dev/null
+    echo ">>>Update the compute node $n"
     ssh $n "pushd /root/${DIR}/; bash ${EXEC} 0"
 done
 
 for n in ${CONTROLS[@]}; do
     echo ">>>Copy files to control node $n"
     scp -r ${DIR} $n:/root/ >/dev/null
-    if [ $1 -eq 0 ]; then
-        ssh $n "ovs-vsctl del-controller br-int"
-    fi
+    echo ">>>Update the control node $n"
     ssh $n "pushd /root/${DIR}/; bash ${EXEC} 1"
 done
 
