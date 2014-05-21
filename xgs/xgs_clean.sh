@@ -58,12 +58,10 @@ echo "Terminate the xgs vm..."
 if [ -n "`nova list|grep ${VM_NAME}`" ]; then
     VM_ID=`nova list|grep ${VM_NAME}|awk '{print $2}'`
     nova delete ${VM_ID}
-    sleep 3;
+    sleep 4;
 fi
 
-export OS_TENANT_NAME=admin
-export OS_USERNAME=admin
-export OS_PASSWORD=admin
+source ~/keystonerc_admin
 
 echo "Check the router, delete its interface from the private1 subnet..."
 ROUTER_ID=`neutron router-list|grep ${ROUTER_NAME}|awk '{print $2}'`
