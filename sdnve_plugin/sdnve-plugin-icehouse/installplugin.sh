@@ -112,7 +112,7 @@ echo_g ">>>Checking installation package..."
 echo_g ">>>Checking existing running IBM Plugin/Agent..."
 [ -n "$(get_pid ibm/sdnve_neutron_plugin.ini)" ] && echo_r "IBM Plugin/Agent is alreay running, exiting...." && exit 1
 
-echo_g ">>> Checking the possible previous installation"
+echo_g ">>>Checking the possible previous installation"
 if [ -r ${PLUGIN_LIB_DIR}/ibm -o -r ${PLUGIN_CFG_DIR}/ibm -o -r ${BIN_DIR}/neutron-sdnve-agent ]
 then
     echo_r "IBM Plugin files are existed, Remove them and restart installation first:"
@@ -128,7 +128,7 @@ fi
 
 echo_g ">>>Starting installation for $PRODUCT"
 
-echo_g ">>>Stopping services..."
+echo_g ">>>Stopping existing neutron services..."
 echo ">>>Kill the neutron-server"
 PLUGIN_PID=$(get_pid neutron-server)
 [ -n "$PLUGIN_PID" ] && kill -9 $PLUGIN_PID
@@ -158,7 +158,7 @@ echo_g ">>>Configuring the IBM Plugin files"
 if [ "${PRODUCT}" = "OSEE" -o "${PRODUCT}" = "RDO" ]; then
     echo "Backup /etc/nova/nova.conf"
 	[ ! -e /etc/nova/nova.conf.bak ] && cp /etc/nova/nova.conf /etc/nova/nova.conf.bak
-    echo "Update /etc/nova/nova.conf to disable security_group_api, linuxnet_interface_driver, change libvirt_vif_driver=nova.virt.libvirt.vif.LibvirtGenericVIFDriver"
+    echo "Update /etc/nova/nova.conf"
     perl -p -i -e 's/^(security_group_api.*)/#\1/' /etc/nova/nova.conf
     perl -p -i -e 's/^(linuxnet_interface_driver\s*=\s*).*/#\1/' /etc/nova/nova.conf
     perl -p -i -e 's/^(libvirt_vif_driver\s*=\s*).*/\1nova.virt.libvirt.vif.LibvirtGenericVIFDriver/' /etc/nova/nova.conf
@@ -209,7 +209,7 @@ if [[ $# -eq 1 && $1 -eq 1 ]]; then
     /etc/init.d/neutron-server restart && sleep 1 
 fi
 
-echo_g ">>>Starting IBM Agent"
+echo_g ">>>Start the SDN-VE Agent"
 #python ${BIN_DIR}/neutron-sdnve-agent  --config-file /etc/neutron/neutron.conf --config-file  ${PLUGIN_CFG_DIR}/ibm/sdnve_neutron_plugin.ini >/tmp/ibm-q-agt.log 2>&1 &
 /etc/init.d/neutron-sdnve-agent start && sleep 1 
 #echo `ps aux|grep neutron-sdnve-agent|grep -v grep`
@@ -251,6 +251,9 @@ if [ "${PRODUCT}" = "OSEE" -o "${PRODUCT}" = "RDO" ]; then
 	#	echo '[[ -x /etc/ibm/plugin/installplugin.sh ]] && (cd /etc/ibm/plugin && ./installplugin.sh)' >> /etc/rc.d/rc.local
 	#fi
 fi
-service neutron-server status
+
+if [[ $# -eq 1 && $1 -eq 1 ]]; then
+    service neutron-server status
+fi
 service neutron-sdnve-agent status
 echo_g ">>>Installation Done."

@@ -173,6 +173,8 @@ if [ "${PRODUCT}" = "OSEE" -o "${PRODUCT}" = "RDO" ]; then
 
 fi
 
-service neutron-server status
+if [[ $# -eq 1 && $1 -eq 1 ]]; then
+    service neutron-server status
+fi
 service neutron-openvswitch-agent status
 echo_g "Removal Done."
