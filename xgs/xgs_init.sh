@@ -24,8 +24,9 @@ USER_ROLE="_member_"
 USER_ROLE2="Member"
 
 IMAGE_NAME="ISNP_XGS"
-#IMAGE_FILE=ISNP_5.1.2_20131121-1829.qcow2
-IMAGE_FILE=xgs_inited.qcow2
+IMAGE_FILE=ISNP_5.1.2_20131121-1829.qcow2
+IMAGE_INITED_NAME="ISNP_XGS_INITED"
+IMAGE_INITED_FILE=xgs_inited.qcow2
 VM_NAME="xgs"
 
 ROUTER_NAME="router"
@@ -89,12 +90,18 @@ create_net_subnet "private4" "private-subnet4" "10.0.4.0/24" "10.0.4.1"
 echo "Check the router, add its interface to the private1 subnet..."
 [ -z "`neutron router-list|grep ${ROUTER_NAME}`" ] && neutron router-create --tenant-id ${TENANT_ID} ${ROUTER_NAME}
 ROUTER_ID=`neutron router-list|grep ${ROUTER_NAME}|awk '{print $2}'`
-neutron router-interface-add ${ROUTER_ID} $(get_subnetid_by_name private-subnet1)
+#neutron router-interface-add ${ROUTER_ID} $(get_subnetid_by_name private-subnet1)
 
 echo "Add the image file into glance and create flavors..."
 if [ -z "`glance image-list|grep ${IMAGE_NAME}`" ]; then
     glance image-create --disk-format qcow2 --container-format bare --name ${IMAGE_NAME} --is-public True --file ${IMAGE_FILE} --progress
     glance image-update --property hw_disk_bus=ide --property hw_vif_model=e1000 ${IMAGE_NAME}
+    sleep 2
+fi
+if [ -z "`glance image-list|grep ${IMAGE_INITED_NAME}`" ]; then
+    glance image-create --disk-format qcow2 --container-format bare --name ${IMAGE_INITED_NAME} --is-public True --file ${IMAGE_INITED_FILE} --progress
+    glance image-update --property hw_disk_bus=ide --property hw_vif_model=e1000 ${IMAGE_INITED_NAME}
+    sleep 2
 fi
 IMAGE_ID=`glance image-list|grep ${IMAGE_NAME}|awk '{print $2}'`
 [ -z "`nova flavor-list|grep tmp.xgs`" ] && nova flavor-create --is-public true tmp.xgs 20 1024 10 1
