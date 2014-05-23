@@ -19,6 +19,22 @@ VM_NAME="xgs"
 ROUTER_NAME="router"
 
 ## DO NOT MODIFY THE FOLLOWING PART, UNLESS YOU KNOW WHAT IT MEANS. ##
+echo_r () {
+    [ $# -ne 1 ] && return 0
+    echo -e "\033[31m$1\033[0m"
+}
+echo_g () {
+    [ $# -ne 1 ] && return 0
+    echo -e "\033[32m$1\033[0m"
+}
+echo_y () {
+    [ $# -ne 1 ] && return 0
+    echo -e "\033[33m$1\033[0m"
+}
+echo_b () {
+    [ $# -ne 1 ] && return 0
+    echo -e "\033[34m$1\033[0m"
+}
 #subnet_name
 get_subnetid_by_name () {
     [ $# -ne 1 ] && return 0
@@ -54,23 +70,28 @@ export OS_TENANT_NAME=${TENANT_NAME}
 export OS_USERNAME=${USER_NAME}
 export OS_PASSWORD=${USER_PWD}
 
-echo "Terminate the xgs vm..."
+echo_g "Check the xgs vm..."
 if [ -n "`nova list|grep ${VM_NAME}`" ]; then
     VM_ID=`nova list|grep ${VM_NAME}|awk '{print $2}'`
+    echo_g "Deleting the xgs vm..."
     nova delete ${VM_ID}
     sleep 4;
 fi
 
 source ~/keystonerc_admin
 
-echo "Check the router, delete its interface from the private1 subnet..."
+echo_g "Check the router interfaces..."
 ROUTER_ID=`neutron router-list|grep ${ROUTER_NAME}|awk '{print $2}'`
-neutron router-interface-delete ${ROUTER_ID} $(get_subnetid_by_name private-subnet1)
+INF_ID=$(get_subnetid_by_name private-subnet1)
+if [ -n "${ROUTER_ID}" -a -n "${INF_ID}" ]; then 
+    echo"Deleting its interface from the private1 subnet..."
+    neutron router-interface-delete ${ROUTER_ID} ${INF_ID}
+fi
 
-echo "Clear the xgs nets and subnets..."
+echo_g "Clear the xgs nets and subnets..."
 delete_net_subnet "private1" "private-subnet1"
 delete_net_subnet "private2" "private-subnet2"
 delete_net_subnet "private3" "private-subnet3"
 delete_net_subnet "private4" "private-subnet4"
 
-echo "Done"
+echo_g "Done"
