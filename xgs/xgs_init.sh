@@ -126,14 +126,14 @@ if [ -f ${IMAGE_FILE} -a -z "`glance image-list|grep ${IMAGE_NAME}`" ]; then
     glance image-update --property hw_disk_bus=ide --property hw_vif_model=rtl8139 ${IMAGE_NAME}
     sleep 1
 fi
-if [ -f ${IMAGE_FILE} -a -z "`glance image-list|grep ${IMAGE_INITED_NAME}`" ]; then
+if [ -f ${IMAGE_INITED_FILE} -a -z "`glance image-list|grep ${IMAGE_INITED_NAME}`" ]; then
     echo "Creating glance image ${IMAGE_INITED_NAME}"
     glance image-create --disk-format qcow2 --container-format bare --name ${IMAGE_INITED_NAME} --is-public True --file ${IMAGE_INITED_FILE} --progress
     glance image-update --property hw_disk_bus=ide --property hw_vif_model=rtl8139 ${IMAGE_INITED_NAME}
     sleep 1
 fi
 IMAGE_ID=`glance image-list|grep ${IMAGE_NAME}|awk '{print $2}'`
-[ -z "${IMAGE_ID}" ] && echo_r "No image is created successfully" && exit -1
+[ -z "${IMAGE_ID}" ] && echo_r "image ${IMAGE_NAME} is not found in glance" && exit -1
 
 echo_g "Creating new flavor..."
 [ -z "`nova flavor-list|grep tmp.xgs`" ] && nova flavor-create --is-public true tmp.xgs 20 1024 10 1
@@ -152,4 +152,8 @@ nova boot ${VM_NAME} --image ${IMAGE_ID} --flavor 20 --availability-zone az1 \
 
 sleep 2;
 
+unset OS_TENANT_NAME
+unset OS_USERNAME
+unset OS_PASSWORD
+unset OS_AUTH_URL
 echo_g "<<<Done" && exit 0

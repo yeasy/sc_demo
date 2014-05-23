@@ -97,4 +97,8 @@ delete_net_subnet "private2" "private-subnet2"
 delete_net_subnet "private3" "private-subnet3"
 delete_net_subnet "private4" "private-subnet4"
 
+unset OS_TENANT_NAME
+unset OS_USERNAME
+unset OS_PASSWORD
+unset OS_AUTH_URL
 echo_g "<<<Done" && exit 0

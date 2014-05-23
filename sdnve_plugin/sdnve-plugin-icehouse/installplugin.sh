@@ -224,11 +224,6 @@ fi
 
 #Clean and restart nova services
 if [ "${PRODUCT}" = "OSEE" -o "${PRODUCT}" = "RDO" ]; then
-	unset OS_USERNAME
-	unset OS_PASSWORD
-	unset OS_TENANT_NAME
-	unset OS_AUTH_URL
-
 	echo_g ">>>Restarting Nova services"
 	NOVA_SERVICES="api conductor compute scheduler"
 	for svc in $NOVA_SERVICES; do service openstack-nova-$svc restart; done
@@ -250,6 +245,10 @@ if [ "${PRODUCT}" = "OSEE" -o "${PRODUCT}" = "RDO" ]; then
 	#	echo '[[ -x /etc/ibm/plugin/removeplugin.sh ]] && (cd /etc/ibm/plugin && ./removeplugin.sh)' >> /etc/rc.d/rc.local
 	#	echo '[[ -x /etc/ibm/plugin/installplugin.sh ]] && (cd /etc/ibm/plugin && ./installplugin.sh)' >> /etc/rc.d/rc.local
 	#fi
+	unset OS_TENANT_NAME
+	unset OS_USERNAME
+	unset OS_PASSWORD
+	unset OS_AUTH_URL
 fi
 
 if [[ $# -eq 1 && $1 -eq 1 ]]; then

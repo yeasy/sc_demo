@@ -170,7 +170,10 @@ if [ "${PRODUCT}" = "OSEE" -o "${PRODUCT}" = "RDO" ]; then
 	#	sed -i '/removeplugin.sh/d' /etc/rc.d/rc.local
 	#	sed -i '/installplugin.sh/d' /etc/rc.d/rc.local
 	#fi
-
+	unset OS_TENANT_NAME
+	unset OS_USERNAME
+	unset OS_PASSWORD
+	unset OS_AUTH_URL
 fi
 
 if [[ $# -eq 1 && $1 -eq 1 ]]; then
