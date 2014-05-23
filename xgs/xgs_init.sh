@@ -46,7 +46,7 @@ USER_ROLE2="Member"
 IMAGE_NAME="ISNP_XGS"
 IMAGE_FILE=ISNP_5.2_20140502-1219_personal_compat.qcow2
 IMAGE_INITED_NAME="ISNP_XGS_INITED"
-IMAGE_INITED_FILE=xgs_inited.qcow2
+IMAGE_INITED_FILE=ISNP_5.2_20140502-1219_personal_compat_inited.qcow2
 VM_NAME="xgs"
 
 ROUTER_NAME="router"
@@ -143,7 +143,7 @@ export OS_TENANT_NAME=${TENANT_NAME}
 export OS_USERNAME=${USER_NAME}
 export OS_PASSWORD=${USER_PWD}
 
-echo_g "Booting a vm in the internal net..."
+echo_g "Booting the vm..."
 nova boot ${VM_NAME} --image ${IMAGE_ID} --flavor 20 --availability-zone az1 \
 --nic net-id=$(get_netid_by_name private1) \
 --nic net-id=$(get_netid_by_name private2) \
