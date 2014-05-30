@@ -7,6 +7,41 @@
 # Environment information
 #CONTROL_IP=192.168.122.100
 #export OS_AUTH_URL=http://${CONTROL_IP}:35357/v2.0/
+
+[ ! -e ~/keystonerc_admin ] && echo_r "Not found keystonerc_admin at home directory" && exit -1
+source ~/keystonerc_admin
+
+# The tenant, user, net, etc... to be created
+TENANT_NAME="IPSaaS"
+TENANT_DESC="The IPSaaS project"
+USER_NAME="user"
+USER_PWD="user"
+
+IMG_XGS_NAME="ISNP_XGS"
+IMG_XGS_INITED_NAME="ISNP_XGS_INITED"
+VM_XGS_NAME="xgs"
+
+NET_XGS1="xgs_manage_net1"
+NET_XGS2="xgs_manage_net2"
+NET_XGS3="xgs_data_net1"
+NET_XGS4="xgs_data_net2"
+SUBNET_XGS1="xgs_manage_subnet1"
+SUBNET_XGS2="xgs_manage_subnet2"
+SUBNET_XGS3="xgs_data_subnet1"
+SUBNET_XGS4="xgs_data_subnet2"
+
+NET_INT1="user_$NET_INT1"
+NET_INT2="user_$NET_INT2"
+SUBNET_INT1="user_$SUBNET_INT1"
+SUBNET_INT2="user_$SUBNET_INT2"
+
+ROUTER_NAME="router"
+
+IMG_USER_NAME="cirros-0.3.0-x86_64"
+VM_USER_NAME1="user_cirros1"
+VM_USER_NAME2="user_cirros2"
+
+## DO NOT MODIFY THE FOLLOWING PART, UNLESS YOU KNOW WHAT IT MEANS ##
 echo_r () {
     [ $# -ne 1 ] && return 0
     echo -e "\033[31m$1\033[0m"
@@ -24,18 +59,6 @@ echo_b () {
     echo -e "\033[34m$1\033[0m"
 }
 
-[ ! -e ~/keystonerc_admin ] && echo_r "Not found keystonerc_admin at home directory" && exit -1
-source ~/keystonerc_admin
-
-# The tenant, user, net, etc... to be created
-TENANT_NAME="project_one"
-USER_NAME="user"
-USER_PWD="user"
-IMAGE_NAME="ISNP_XGS"
-VM_NAME="xgs"
-ROUTER_NAME="router"
-
-## DO NOT MODIFY THE FOLLOWING PART, UNLESS YOU KNOW WHAT IT MEANS. ##
 #subnet_name
 get_subnetid_by_name () {
     [ $# -ne 1 ] && return 0
@@ -67,35 +90,94 @@ delete_net_subnet () {
     [ -n "`neutron net-list|grep ${NET_NAME}`" ] && neutron net-delete $(get_netid_by_name ${NET_NAME})
 }
 
+#vm_name
+delete_vm () {
+    [ $# -ne 1 ] && echo "Wrong parameter number is given" && exit -1
+    local NAME=$1
+    if [ -n "`nova list|grep ${NAME}`" ]; then
+        local ID=`nova list|grep ${NAME}|awk '{print $2}'`
+        echo_g "Deleting the vm $NAME..."
+        nova delete ${ID}
+        sleep 2;
+    fi
+}
+
+#image_name
+delete_image () {
+    [ $# -ne 1 ] && echo "Wrong parameter number is given" && exit -1
+    local NAME=$1
+    if [ -n "`nova image-list|grep ${NAME}`" ]; then
+        local ID=`nova image-list|grep ${NAME}|awk '{print $2}'`
+        glance -f image-delete ${ID}
+        sleep 1;
+    fi
+}
+
 export OS_TENANT_NAME=${TENANT_NAME}
 export OS_USERNAME=${USER_NAME}
 export OS_PASSWORD=${USER_PWD}
 
-echo_g ">>>Starting the XGS clean..."
+## MAIN PROCESSING START ##
 
-echo_g "Checking the xgs vm..."
-if [ -n "`nova list|grep ${VM_NAME}`" ]; then
-    VM_ID=`nova list|grep ${VM_NAME}|awk '{print $2}'`
-    echo_g "Deleting the xgs vm..."
-    nova delete ${VM_ID}
-    sleep 4;
-fi
+echo_b ">>>Starting the IPSaaS clean..."
+
+echo_b "Deleting the user vms..."
+delete_vm ${VM_USER_NAME1}
+delete_vm ${VM_USER_NAME2}
+
+echo_b "Deleting the xgs vm..."
+delete_vm ${VM_XGS_NAME}
 
 source ~/keystonerc_admin
 
-echo_g "Checking the router interfaces..."
+echo_b "Clear the images from glance and the flavor..."
+#delete_image ${IMG_USER_NAME}
+#delete_image ${IMG_XGS_NAME}
+#delete_image ${IMG_XGS_INITED_NAME}
+[ -n "`nova flavor-list|grep ex.xgs`" ] && nova flavor-delete ex.xgs
+[ -n "`nova flavor-list|grep ex.tiny`" ] && nova flavor-delete ex.tiny
+[ -n "`nova flavor-list|grep ex.small`" ] && nova flavor-delete ex.small
+
+echo_b "Deleting the router and its interfaces..."
 ROUTER_ID=`neutron router-list|grep ${ROUTER_NAME}|awk '{print $2}'`
-INF_ID=$(get_subnetid_by_name private-subnet1)
-if [ -n "${ROUTER_ID}" -a -n "${INF_ID}" ]; then 
-    echo "Deleting its interface from the private1 subnet..."
-    neutron router-interface-delete ${ROUTER_ID} ${INF_ID}
+SUBNET_ID1=$(get_subnetid_by_name ${SUBNET_INT1})
+SUBNET_ID2=$(get_subnetid_by_name ${SUBNET_INT2})
+if [ -n "${ROUTER_ID}" -a -n "${SUBNET_ID1}" -a -n "${SUBNET_ID2}" ]; then 
+    echo_g "Deleting its interface from the ${SUBNET_INT1}..."
+    neutron router-interface-delete ${ROUTER_ID} ${SUBNET_ID1}
+    echo_g "Deleting its interface from the ${SUBNET_INT2}..."
+    neutron router-interface-delete ${ROUTER_ID} ${SUBNET_ID2}
+    echo_g "Deleting router ${ROUTER_NAME}..."
+    neutron router-delete ${ROUTER_ID}
 fi
 
-echo_g "Clearing the xgs nets and subnets..."
-delete_net_subnet "private1" "private-subnet1"
-delete_net_subnet "private2" "private-subnet2"
-delete_net_subnet "private3" "private-subnet3"
-delete_net_subnet "private4" "private-subnet4"
+echo_b "Clearing the user nets and subnets..."
+delete_net_subnet ${NET_INT1} ${SUBNET_INT1}
+delete_net_subnet ${NET_INT2} ${SUBNET_INT2}
+
+echo_b "Clearing the xgs nets and subnets..."
+delete_net_subnet ${NET_XGS1} ${SUBNET_XGS1}
+delete_net_subnet ${NET_XGS2} ${SUBNET_XGS2}
+delete_net_subnet ${NET_XGS3} ${SUBNET_XGS3}
+delete_net_subnet ${NET_XGS4} ${SUBNET_XGS4}
+
+echo "Clearing the user..."
+if [ -n "`keystone user-list|grep ${USER_NAME}`" ]; then 
+    USER_ID=`keystone user-list|grep ${USER_NAME}|awk '{print $2}'`
+    keystone user-delete ${USER_ID}
+fi
+
+echo "Clearing the project..."
+if [ -n "`keystone tenant-list|grep ${TENANT_NAME}`" ]; then 
+    TENANT_ID=`keystone tenant-list|grep ${TENANT_NAME}|awk '{print $2}'`
+    keystone tenant-delete ${TENANT_ID}
+fi
+
+echo "Clean all generated network namespace"
+for name in `ip netns show`  
+do   
+    [[ $name == qdhcp-* || $name == qrouter-* ]] &&  ip netns del $name
+done
 
 unset OS_TENANT_NAME
 unset OS_USERNAME

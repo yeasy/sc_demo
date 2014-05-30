@@ -33,6 +33,8 @@ NET_XGS3="xgs_data_net1"
 NET_XGS4="xgs_data_net2"
 SUBNET_XGS1="xgs_manage_subnet1"
 SUBNET_XGS2="xgs_manage_subnet2"
+SUBNET_XGS3="xgs_data_subnet1"
+SUBNET_XGS4="xgs_data_subnet2"
 
 NET_INT1="user_$NET_INT1"
 NET_INT2="user_$NET_INT2"
@@ -173,10 +175,10 @@ echo_b "Checking user..."
 create_user ${USER_NAME} ${USER_PWD} ${TENANT_ID} ${USER_EMAIL}
 
 echo_b "Creating 4 nets and subnets for the xgs vm"
-create_net_subnet "$NET_XGS1" "$NET_XGS1" "10.0.1.0/24" "10.0.1.1"
-create_net_subnet "$NET_XGS2" "$NET_XGS2" "10.0.2.0/24" "10.0.2.1"
-create_net_subnet "$NET_XGS3" "$XGS_SUBNET1" "10.0.3.0/24" "10.0.3.1"
-create_net_subnet "$NET_XGS4" "$XGS_SUBNET2" "10.0.4.0/24" "10.0.4.1"
+create_net_subnet "$NET_XGS1" "$SUBNET_XGS1" "10.0.1.0/24" "10.0.1.1"
+create_net_subnet "$NET_XGS2" "$SUBNET_XGS2" "10.0.2.0/24" "10.0.2.1"
+create_net_subnet "$NET_XGS3" "$SUBNET_XGS3" "10.0.3.0/24" "10.0.3.1"
+create_net_subnet "$NET_XGS4" "$SUBNET_XGS4" "10.0.4.0/24" "10.0.4.1"
 
 echo_b "Creating 2 nets and subnets for the user vm"
 create_net_subnet "$NET_INT1" "$SUBNET_INT1" "192.168.1.0/24" "192.168.1.1"
@@ -202,7 +204,7 @@ IMG_XGS_ID=`glance image-list|grep ${IMG_XGS_NAME}|awk '{print $2}'`
 [ -z "${IMG_XGS_ID}" ] && echo_r "image ${IMG_XGS_NAME} is not found in glance" && exit -1
 
 echo_b "Creating new flavors..."
-[ -z "`nova flavor-list|grep tmp.xgs`" ] && nova flavor-create --is-public true tmp.xgs 20 1024 10 1
+[ -z "`nova flavor-list|grep ex.xgs`" ] && nova flavor-create --is-public true ex.xgs 20 1024 10 1
 [ -z "`nova flavor-list|grep ex.tiny`" ] &&nova flavor-create --is-public true ex.tiny 10 512 2 1
 [ -z "`nova flavor-list|grep ex.small`" ] && nova flavor-create --is-public true ex.small 11 512 20 1
 
