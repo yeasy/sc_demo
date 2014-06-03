@@ -15,10 +15,12 @@ echo_b "Check the demo image..."
 [ -f ${IMG_USER_FILE} ] || wget ${IMG_USER_URL}
 
 echo_b "Checking tenant ${TENANT_NAME}"
-TENANT_ID=$(create_tenant $TENANT_NAME $TENANT_DESC) && echo "tenant id = ${TENANT_ID}"
+create_tenant "$TENANT_NAME" "$TENANT_DESC" && sleep 1
+TENANT_ID=$(get_tenantid_by_name "$TENANT_NAME") && echo_g "tenant id = ${TENANT_ID}"
 
 echo_b "Checking user..."
-create_user ${USER_NAME} ${USER_PWD} ${TENANT_ID} ${USER_EMAIL}
+create_user "${USER_NAME}" "${USER_PWD}" "${TENANT_ID}" "${USER_EMAIL}"
+sleep 1
 
 echo_b "Creating 4 nets and subnets for the xgs vm"
 create_net_subnet "$NET_XGS1" "$SUBNET_XGS1" "10.0.1.0/24" "10.0.1.1"
@@ -31,7 +33,8 @@ create_net_subnet "$NET_INT1" "$SUBNET_INT1" "192.168.1.0/24" "192.168.1.1"
 create_net_subnet "$NET_INT2" "$SUBNET_INT2" "192.168.2.0/24" "192.168.2.1"
 
 echo_b "Checking the router, add its interface between user subnet..."
-ROUTER_ID=$(create_router "${ROUTER_NAME}" "${TENANT_ID}")
+create_router "${ROUTER_NAME}" "${TENANT_ID}"
+ROUTER_ID=$(get_routerid_by_name "${ROUTER_NAME}")
 SUBNET_ID1=$(get_subnetid_by_name "$SUBNET_INT1")
 SUBNET_ID2=$(get_subnetid_by_name "$SUBNET_INT2")
 if [ -n "${ROUTER_ID}" -a -n "${SUBNET_ID1}" -a -n "${SUBNET_ID2}" ]; then 
@@ -43,11 +46,13 @@ fi
 echo_b "Adding the user_vm, xgs, xgs_inited image file into glance..."
 create_image ${IMG_USER_NAME} ${IMG_USER_FILE}
 create_image ${IMG_XGS_NAME} ${IMG_XGS_FILE}
-create_image ${IMG_XGS_INITED_NAME} ${IMG_XGS_INITED_FILE}
 glance image-update --property hw_disk_bus=ide --property hw_vif_model=rtl8139 ${IMG_XGS_NAME}
-glance image-update --property hw_disk_bus=ide --property hw_vif_model=rtl8139 ${IMG_XGS_INITED_NAME}
+#create_image ${IMG_XGS_INITED_NAME} ${IMG_XGS_INITED_FILE}
+#glance image-update --property hw_disk_bus=ide --property hw_vif_model=rtl8139 ${IMG_XGS_INITED_NAME}
 IMG_XGS_ID=`glance image-list|grep ${IMG_XGS_NAME}|awk '{print $2}'`
 [ -z "${IMG_XGS_ID}" ] && echo_r "image ${IMG_XGS_NAME} is not found in glance" && exit -1
+IMG_USER_ID=`glance image-list|grep ${IMG_USER_NAME}|awk '{print $2}'`
+[ -z "${IMG_USER_ID}" ] && echo_r "image ${IMG_USER_NAME} is not found in glance" && exit -1
 
 echo_b "Creating new flavors..."
 [ -z "`nova flavor-list|grep ex.xgs`" ] && nova flavor-create --is-public true ex.xgs 20 1024 10 1
@@ -74,9 +79,11 @@ nova boot ${VM_XGS_NAME} --image ${IMG_XGS_ID} --flavor 20 --availability-zone a
 sleep 2;
 
 echo_b "Booting the user vm..."
-nova boot ${VM_USER_NAME1} --image ${IMG_USER_ID} --flavor 10 --nic net-id=$(get_netid_by_name "$NET_INT1")
+nova boot ${VM_USER_NAME1} --image ${IMG_USER_ID} --flavor 10 --availability-zone az1 \
+--nic net-id=$(get_netid_by_name "$NET_INT1")
 sleep 1
-nova boot ${VM_USER_NAME2} --image ${IMG_USER_ID} --flavor 10 --nic net-id=$(get_netid_by_name "$NET_INT2")
+nova boot ${VM_USER_NAME2} --image ${IMG_USER_ID} --flavor 10 --availability-zone az1 \
+--nic net-id=$(get_netid_by_name "$NET_INT2")
 
 unset OS_TENANT_NAME
 unset OS_USERNAME

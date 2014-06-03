@@ -59,13 +59,13 @@ delete_net_subnet ${NET_XGS2} ${SUBNET_XGS2}
 delete_net_subnet ${NET_XGS3} ${SUBNET_XGS3}
 delete_net_subnet ${NET_XGS4} ${SUBNET_XGS4}
 
-echo "Clearing the user..."
+echo "Clearing the user ${USER_NAME}..."
 if [ -n "`keystone user-list|grep ${USER_NAME}`" ]; then 
     USER_ID=`keystone user-list|grep ${USER_NAME}|awk '{print $2}'`
     keystone user-delete ${USER_ID}
 fi
 
-echo "Clearing the project..."
+echo "Clearing the project ${TENANT_NAME}..."
 if [ -n "`keystone tenant-list|grep ${TENANT_NAME}`" ]; then 
     TENANT_ID=`keystone tenant-list|grep ${TENANT_NAME}|awk '{print $2}'`
     keystone tenant-delete ${TENANT_ID}
