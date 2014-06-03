@@ -9,7 +9,7 @@
 #export OS_AUTH_URL=http://${CONTROL_IP}:35357/v2.0/
 
 [ ! -e header.sh ] && echo_r "Not found header file" && exit -1
-. header.sh
+. ./header.sh
 
 export OS_TENANT_NAME=${TENANT_NAME}
 export OS_USERNAME=${USER_NAME}

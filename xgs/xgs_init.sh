@@ -3,7 +3,7 @@
 #https://w3-connections.ibm.com/wikis/home?lang=en-us#!/wiki/Stefan's%20Corner/page/IceHouse%20--%20XGSPlugin%20Installation%20Instructions
 
 [ ! -e header.sh ] && echo_r "Not found header file" && exit -1
-. header.sh
+. ./header.sh
 
 ## MAIN PROCESSING START ##
 echo_b ">>>Starting the IPSaaS initialization..."
