@@ -180,6 +180,14 @@ delete_image () {
     fi
 }
 
+#image_name
+get_imageid_by_name () {
+    [ $# -ne 1 ] && return 0
+    local NAME=$1
+    [ -z "`glance image-list|grep ${NAME}`" ] && return 0
+    echo `glance image-list|grep ${NAME}|awk '{print $2}'`
+}
+
 #vm_name
 delete_vm () {
     [ $# -ne 1 ] && echo "Wrong parameter number is given: $#" && exit -1
@@ -189,5 +197,24 @@ delete_vm () {
         echo_g "Deleting the vm $NAME..."
         nova delete ${ID}
         sleep 2;
+    fi
+}
+
+#user_name
+delete_user () {
+    [ $# -ne 1 ] && echo "Wrong parameter number is given" && exit -1
+    local NAME=$1
+    if [ -n "`keystone user-list|grep ${NAME}`" ]; then 
+        ID=`keystone user-list|grep ${NAME}|awk '{print $2}'`
+        keystone user-delete ${ID}
+    fi
+}
+#tenant_name
+delete_tenant () {
+    [ $# -ne 1 ] && echo "Wrong parameter number is given" && exit -1
+    local NAME=$1
+    if [ -n "`keystone tenant-list|grep ${NAME}`" ]; then 
+        ID=`keystone tenant-list|grep ${NAME}|awk '{print $2}'`
+        keystone tenant-delete ${ID}
     fi
 }
