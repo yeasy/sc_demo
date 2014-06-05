@@ -40,12 +40,12 @@ SUBNET_INT2="user_subnet_int2"
 
 ROUTER_NAME="router"
 
-IMG_USER_NAME="cirros-0.3.0-x86_64"
-IMG_USER_FILE=cirros-0.3.0-x86_64-disk.img
-IMG_USER_URL=https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
+IMG_USER_NAME="Ubuntu 12.04"
+IMG_USER_FILE=ubuntu-pc.img
+#IMG_USER_URL=https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
 #if not existed will download from ${IMG_USER_URL}
-VM_USER_NAME1="user_cirros1"
-VM_USER_NAME2="user_cirros2"
+VM_USER_NAME1="user_vm1"
+VM_USER_NAME2="user_vm2"
 
 
 ## DO NOT MODIFY THE FOLLOWING PART, UNLESS YOU KNOW WHAT IT MEANS ##

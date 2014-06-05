@@ -11,8 +11,8 @@ echo_b ">>>Starting the IPSaaS initialization..."
 echo_b "Checking the xgs image..."
 [ ! -f ${IMG_XGS_FILE} ] && echo_r "vm image ${IMG_XGS_FILE} not found" exit -1;
 
-echo_b "Check the demo image..."
-[ -f ${IMG_USER_FILE} ] || wget ${IMG_USER_URL}
+echo_b "Check the user image..."
+[ ! -f ${IMG_USER_FILE} ] && echo_r "vm image ${IMG_USER_FILE} not found" exit -1; 
 
 echo_b "Checking tenant ${TENANT_NAME}"
 create_tenant "$TENANT_NAME" "$TENANT_DESC" && sleep 1
