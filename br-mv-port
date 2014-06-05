@@ -1,11 +1,11 @@
 #!/bin/sh
 #This tool will move the specific port to the given bridge using ovs-vsctl
-#Usage: [prog] port br-name
+#Usage: [prog] br port 
 
-[ $# -ne 2 ] && echo "Wrong parameters are given. Usage: [prog] port br-name" && exit -1;
+[ $# -ne 2 ] && echo "Wrong parameters are given. Usage: [prog] br port " && exit -1;
 
-br=$2
-port=$1
+br=$1
+port=$2
 
 ovs-vsctl --if-exist del-port ${port}
 ovs-vsctl --may-exist add-port ${br} ${port}
