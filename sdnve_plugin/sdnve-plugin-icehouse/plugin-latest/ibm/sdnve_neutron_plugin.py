@@ -21,21 +21,28 @@ import functools
 
 from oslo.config import cfg
 
+# dhcp                                                                   
+from neutron.api.rpc.agentnotifiers import dhcp_rpc_agent_api
+from neutron.db import dhcp_rpc_base
+from neutron.db import agentschedulers_db
+from neutron.db import quota_db  # noqa
+from neutron.openstack.common import importutils
+
 from neutron.common import constants as q_const
 from neutron.common import exceptions as n_exc
-from neutron.common import rpc as q_rpc
+from neutron.common import rpc as n_rpc
+from neutron.common import rpc_compat
 from neutron.common import topics
 from neutron.db import agents_db
 from neutron.db import db_base_plugin_v2
 from neutron.db import external_net_db
 from neutron.db import l3_gwmode_db
 from neutron.db import portbindings_db
-from neutron.db import quota_db # noqa
+from neutron.db import quota_db  # noqa
 from neutron.extensions import portbindings
 from neutron.openstack.common import excutils
 from neutron.openstack.common import log as logging
 from neutron.openstack.common import rpc
-from neutron.openstack.common.rpc import proxy
 from neutron.plugins.ibm.common import config  # noqa
 from neutron.plugins.ibm.common import constants
 from neutron.plugins.ibm.common import exceptions as sdnve_exc
@@ -45,17 +52,20 @@ from neutron.plugins.ibm import sdnve_api_fake as sdnve_fake
 LOG = logging.getLogger(__name__)
 
 
-class SdnveRpcCallbacks():
+class SdnveRpcCallbacks(dhcp_rpc_base.DhcpRpcCallbackMixin):
+
+    RPC_API_VERSION = '1.1'
 
     def __init__(self, notifier):
         self.notifier = notifier  # used to notify the agent
+        super(SdnveRpcCallbacks, self).__init__()
 
     def create_rpc_dispatcher(self):
         '''Get the rpc dispatcher for this manager.
         If a manager would like to set an rpc API version, or support more than
         one class as the target of rpc messages, override this method.
         '''
-        return q_rpc.PluginRpcDispatcher([self,
+        return n_rpc.PluginRpcDispatcher([self,
                                           agents_db.AgentExtRpcCallback()])
 
     def sdnve_info(self, rpc_context, **kwargs):
@@ -66,7 +76,7 @@ class SdnveRpcCallbacks():
         return info
 
 
-class AgentNotifierApi(proxy.RpcProxy):
+class AgentNotifierApi(rpc_compat.RpcProxy):
     '''Agent side of the SDN-VE rpc API.'''
 
     BASE_RPC_API_VERSION = '1.0'
@@ -96,7 +106,7 @@ def _ha(func):
         When a controller is detected to be not responding, and a
         new controller is chosen to be used in its place, this decorator
         makes sure the existing integration bridges are set to point
-        to the new controleer by calling the set_controller method.
+        to the new controller by calling the set_controller method.
         '''
         ret_func = func(self, *args, **kwargs)
         self.set_controller(args[0])
@@ -108,9 +118,9 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                     external_net_db.External_net_db_mixin,
                     portbindings_db.PortBindingMixin,
                     l3_gwmode_db.L3_NAT_db_mixin,
-                    agents_db.AgentDbMixin,
+                    # agents_db.AgentDbMixin,
+                    agentschedulers_db.DhcpAgentSchedulerDbMixin, # dhcp
                     ):
-
     '''
     Implement the Neutron abstractions using SDN-VE SDN Controller.
     '''
@@ -120,7 +130,8 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
     __native_sorting_support = False
 
     supported_extension_aliases = ["binding", "router", "external-net",
-                                   "agent","quotas"]
+                                   "agent", "quotas",
+                                   "dhcp_agent_scheduler"] # dhcp
 
     def __init__(self, configfile=None):
         self.base_binding_dict = {
@@ -129,6 +140,12 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
 
         super(SdnvePluginV2, self).__init__()
         self.setup_rpc()
+
+        # dhcp
+        self.network_scheduler = importutils.import_object(
+            cfg.CONF.network_scheduler_driver
+        )
+
         self.sdnve_controller_select()
         if self.fake_controller:
             self.sdnve_client = sdnve_fake.FakeClient()
@@ -143,6 +160,12 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
         self.topic = topics.PLUGIN
         self.conn = rpc.create_connection(new=True)
         self.notifier = AgentNotifierApi(topics.AGENT)
+
+        # dhcp
+        self.agent_notifiers[q_const.AGENT_TYPE_DHCP] = (
+            dhcp_rpc_agent_api.DhcpAgentNotifyAPI()
+        )
+
         self.callbacks = SdnveRpcCallbacks(self.notifier)
         self.dispatcher = self.callbacks.create_rpc_dispatcher()
         self.conn.create_consumer(self.topic, self.dispatcher,
@@ -237,7 +260,11 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
     @_ha
     def delete_network(self, context, id):
         LOG.debug(_("Delete network in progress: %s"), id)
-        super(SdnvePluginV2, self).delete_network(context, id)
+        session = context.session
+
+        with session.begin(subtransactions=True):
+            self._process_l3_delete(context, id)
+            super(SdnvePluginV2, self).delete_network(context, id)
 
         (res, data) = self.sdnve_client.sdnve_delete('network', id)
         if res not in constants.HTTP_ACCEPTABLE:
@@ -267,7 +294,7 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
         session = context.session
 
         # Set port status as 'ACTIVE' to avoid needing the agent
-        port['port']['status'] = q_const.PORT_STATUS_ACTIVE
+        port['port']['status'] = n_const.PORT_STATUS_ACTIVE
         port_data = port['port']
 
         with session.begin(subtransactions=True):
@@ -441,7 +468,7 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
             router['router']['admin_state_up'] = True
 
         tenant_id = self._get_tenant_id_for_create(context, router['router'])
-        # Create a new Pinnaacles tenant if need be
+        # Create a new SDN-VE tenant if need be
         sdnve_tenant = self.sdnve_client.sdnve_check_and_create_tenant(
             tenant_id)
         if sdnve_tenant is None:
@@ -449,7 +476,7 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                 msg=_('Create router failed: no SDN-VE tenant.'))
 
         new_router = super(SdnvePluginV2, self).create_router(context, router)
-        # Create Sdnve router
+        # Create SDN-VE router
         (res, data) = self.sdnve_client.sdnve_create('router', new_router)
         if res not in constants.HTTP_ACCEPTABLE:
             super(SdnvePluginV2, self).delete_router(context, new_router['id'])
@@ -482,8 +509,10 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
 
         if processed_request['router']:
             egw = processed_request['router'].get('external_gateway_info')
+            # Check for existing empty set (different from None) in request
             if egw == {}:
-               processed_request['router']['external_gateway_info'] = {'network_id': 'null'}
+                processed_request['router'][
+                    'external_gateway_info'] = {'network_id': 'null'}
             (res, data) = self.sdnve_client.sdnve_update(
                 'router', id, processed_request['router'])
             if res not in constants.HTTP_ACCEPTABLE:
@@ -559,11 +588,11 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                   {'router_id': router_id, 'interface_info': interface_info})
 
         subnet_id = interface_info.get('subnet_id')
+        port_id = interface_info.get('port_id')
         if not subnet_id:
-            portid = interface_info.get('port_id')
-            if not portid:
+            if not port_id:
                 raise sdnve_exc.BadInputException(msg=_('No port ID'))
-            myport = super(SdnvePluginV2, self).get_port(context, portid)
+            myport = super(SdnvePluginV2, self).get_port(context, port_id)
             LOG.debug(_("SdnvePluginV2.remove_router_interface port: %s"),
                       myport)
             myfixed_ips = myport.get('fixed_ips')
@@ -575,21 +604,21 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
                 LOG.debug(
                     _("SdnvePluginV2.remove_router_interface subnet_id: %s"),
                     subnet_id)
-            else:
-                portid = interface_info.get('port_id')
-                if not portid:
-                    subnet = super(SdnvePluginV2, self).get_subnet(context, subnet_id)
-                    device_filter = {'device_id': [router_id],
-                                     'device_owner': [q_const.DEVICE_OWNER_ROUTER_INTF],
-                                     'network_id': [subnet['network_id']]}
-                    ports = super(SdnvePluginV2, self).get_ports(context,
-                                                   filters=device_filter)
-                    if ports:
-                        portid = ports[0]['id']
-                        interface_info['port_id'] = portid
-                        LOG.debug(
-                         _("SdnvePluginV2.remove_router_interface subnet_id: %s port_id: %s" ),
-                           subnet_id, portid)
+        else:
+            if not port_id:
+                # The backend requires port id info in the request
+                subnet = super(SdnvePluginV2, self).get_subnet(context,
+                                                               subnet_id)
+                df = {'device_id': [router_id],
+                      'device_owner': [n_const.DEVICE_OWNER_ROUTER_INTF],
+                      'network_id': [subnet['network_id']]}
+                ports = self.get_ports(context, filters=df)
+                if ports:
+                    pid = ports[0]['id']
+                    interface_info['port_id'] = pid
+                    msg = ("SdnvePluginV2.remove_router_interface "
+                           "subnet_id: %(sid)s  port_id: %(pid)s")
+                    LOG.debug(msg, {'sid': subnet_id, 'pid': pid})
 
         (res, data) = self.sdnve_client.sdnve_update(
             'router', router_id + '/remove_router_interface', interface_info)
