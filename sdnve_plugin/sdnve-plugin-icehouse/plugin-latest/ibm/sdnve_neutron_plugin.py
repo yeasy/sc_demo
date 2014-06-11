@@ -28,7 +28,7 @@ from neutron.db import agentschedulers_db
 from neutron.db import quota_db  # noqa
 from neutron.openstack.common import importutils
 
-from neutron.common import constants as q_const
+from neutron.common import constants as n_const
 from neutron.common import exceptions as n_exc
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
@@ -162,7 +162,7 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
         self.notifier = AgentNotifierApi(topics.AGENT)
 
         # dhcp
-        self.agent_notifiers[q_const.AGENT_TYPE_DHCP] = (
+        self.agent_notifiers[n_const.AGENT_TYPE_DHCP] = (
             dhcp_rpc_agent_api.DhcpAgentNotifyAPI()
         )
 
