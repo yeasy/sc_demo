@@ -41,7 +41,7 @@ SDNVE_URL = 'https://%s:%s%s'
 
 
 class RequestHandler(object):
-    '''Handles processeing requests to and responses from controller.'''
+    '''Handles processing requests to and responses from controller.'''
 
     def __init__(self, controller_ips=None, port=None, ssl=None,
                  base_url=None, userid=None, password=None,
@@ -53,7 +53,7 @@ class RequestHandler(object):
         :param port: Username for authentication.
         :param timeout: Time out for http requests.
         :param userid: User id for accessing controller.
-        :param password: Password for accessing the controlelr.
+        :param password: Password for accessing the controller.
         :param base_url: The base url for the controller.
         :param controller_ips: List of controller IP addresses.
         :param formats: Supported formats.
@@ -92,9 +92,7 @@ class RequestHandler(object):
         '''Serializes a dictionary with a single key.'''
 
         if isinstance(data, dict):
-            result = wsgi.Serializer().serialize(data, self.content_type())
-            # NOTE(baohua): SDN-VE controller requires this
-            return result.replace("router:external", "router_external")
+            return wsgi.Serializer().serialize(data, self.content_type())
         elif data:
             raise TypeError(_("unable to serialize object type: '%s'") %
                             type(data))
@@ -163,14 +161,14 @@ class RequestHandler(object):
                 myurl += '?' + urllib.urlencode(params, doseq=1)
 
             try:
-                LOG.warn(_("Sending request to SDN-VE. url: "
+                LOG.debug(_("Sending request to SDN-VE. url: "
                             "%(myurl)s method: %(method)s body: "
                             "%(body)s header: %(header)s "),
                           {'myurl': myurl, 'method': method,
                            'body': body, 'header': self.headers})
                 resp, replybody = self.httpclient.request(
                     myurl, method=method, body=body, headers=self.headers)
-                LOG.warn(("Response recd from SDN-VE. resp: %(resp)s"
+                LOG.debug(("Response recd from SDN-VE. resp: %(resp)s"
                            "body: %(body)s"),
                           {'resp': resp.status, 'body': replybody})
                 status_code = resp.status
@@ -183,17 +181,17 @@ class RequestHandler(object):
                 continue
 
             if status_code not in constants.HTTP_ACCEPTABLE:
-                LOG.warn(_("Error message: %(reply)s --  Status: %(status)s"),
+                LOG.debug(_("Error message: %(reply)s --  Status: %(status)s"),
                           {'reply': replybody, 'status': status_code})
             else:
-                LOG.warn(_("Received response status: %s"), status_code)
+                LOG.debug(_("Received response status: %s"), status_code)
 
             if resp.get('set-cookie'):
                 self.cookie = resp['set-cookie']
             replybody_deserialized = self.deserialize(
                 replybody,
                 status_code)
-            LOG.warn(_("Deserialized body: %s"), replybody_deserialized)
+            LOG.debug(_("Deserialized body: %s"), replybody_deserialized)
             if controller_ip != self.controller_ip:
                 # bcast the change of controller
                 self.new_controller = True
@@ -228,6 +226,7 @@ class Client(RequestHandler):
             body = dict(
                 (k.replace(':', '_'), v) for k, v in body.items()
                 if attributes.is_attr_set(v))
+        return body
 
     def sdnve_list(self, resource, **params):
         '''Fetches a list of resources.'''
@@ -257,7 +256,7 @@ class Client(RequestHandler):
             LOG.info(_("Bad resource for forming a create request"))
             return 0, ''
 
-        self.process_request(body)
+        body = self.process_request(body)
         status, data = self.post(res, body=body)
         return (status, data)
 
@@ -269,7 +268,7 @@ class Client(RequestHandler):
             LOG.info(_("Bad resource for forming a update request"))
             return 0, ''
 
-        self.process_request(body)
+        body = self.process_request(body)
         return self.put(res + specific, body=body)
 
     def sdnve_delete(self, resource, specific):
