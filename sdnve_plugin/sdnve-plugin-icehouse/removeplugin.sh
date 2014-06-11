@@ -47,11 +47,6 @@
     #/etc/neutron/neutron.conf
     #/etc/neutron/plugin.ini
 
-SDNVE_AGENT="plugin-archive/int_support/neutron-sdnve-agent"
-
-RC_DIR=/etc/init.d
-PYTHON_PKG_DIR=`python -c "from distutils.sysconfig import get_python_lib; print get_python_lib()"`
-
 get_pid () {
     [ $# -ne 1 ] && return 0
     local NAME=$1
@@ -75,6 +70,13 @@ echo_b () {
     [ $# -ne 1 ] && return 0
     echo -e "\033[34m$1\033[0m"
 }
+
+SDNVE_AGENT="plugin-archive/int_support/neutron-sdnve-agent"
+SDNVE_DHCP_AGENT="plugin-latest/dhcp/sdnvedhcp.py"
+
+RC_DIR=/etc/init.d
+PYTHON_PKG_DIR=`python -c "from distutils.sysconfig import get_python_lib; print get_python_lib()"`
+DHCP_AGENT_INT="/etc/neutron/dhcp_agent.ini"
 
 if [ -z ${PYTHON_PKG_DIR} ]; then
     echo_r "Cannot find python path, pls install python first"
@@ -123,8 +125,18 @@ fi
 [ -e ${BIN_DIR}/neutron-sdnve-agent ] && rm -f ${BIN_DIR}/neutron-sdnve-agent 
 [ -e ${RC_DIR}/neutron-sdnve-agent ] && rm -f ${RC_DIR}/neutron-sdnve-agent
 
+if [[ $# -eq 1 && $1 -eq 0 && -f ${PYTHON_PKG_DIR}/neutron/agent/linux/sdnvedhcp.py ]]; then #only on Compute node
+    echo_g ">>>[Compute Node]: Remove the dhcp agent"
+    rm -f ${PYTHON_PKG_DIR}/neutron/agent/linux/sdnvedhcp.py
+    echo "Restore /etc/neutron/dhcp_agent.ini"
+    [ -e /etc/neutron/dhcp_agent.ini.bak ] && mv /etc/neutron/dhcp_agent.ini.bak /etc/neutron/dhcp_agent.ini 2>/dev/null
+    chmod 640 /etc/neutron/dhcp_agent.ini
+    chgrp neutron /etc/neutron/dhcp_agent.ini
+    echo "Restore /usr/share/neutron/rootwrap/dhcp.filters"
+    [ -e /usr/share/neutron/rootwrap/dhcp.filters.bak ] && mv /usr/share/neutron/rootwrap/dhcp.filters.bak /usr/share/neutron/rootwrap/dhcp.filters
+
 # Revert back the configuration files
-echo_g ">>>Restore configuration files (nova.conf and neutron.conf)..."
+echo_g ">>>Restore configuration files (e.g., nova.conf)..."
 
 echo "Restore nova.conf"
 if [ "${PRODUCT}" = "OSEE" -o "${PRODUCT}" = "RDO" ]; then
@@ -137,6 +149,7 @@ echo "Restore neutron.conf"
 [ -e /etc/neutron/neutron.conf.bak ] && mv -f /etc/neutron/neutron.conf.bak /etc/neutron/neutron.conf 2>/dev/null
 chmod 640 /etc/neutron/neutron.conf
 chgrp neutron /etc/neutron/neutron.conf
+
 
 echo "Link the ovs_neutron_plugin.ini to /etc/neutron/plugin.ini"
 if [ "${PRODUCT}" = "OSEE" -o "${PRODUCT}" = "RDO" ]; then
@@ -153,6 +166,12 @@ if [ "${PRODUCT}" = "OSEE" -o "${PRODUCT}" = "RDO" ]; then
         /etc/init.d/neutron-dhcp-agent restart
         /etc/init.d/neutron-l3-agent restart
     fi
+
+    if [[ $# -eq 1 && $1 -eq 0 && -f ${SDNVE_DHCP_AGENT} ]]; then #only on Compute node
+        echo_g ">>>[Compute Node]: Restart the dhcp agent"
+        service neutron-dhcp-agent restart
+    fi
+
     ovs-vsctl del-controller br-int
     echo_g ">>>Restart neutron-openvswitch-agent"
     /etc/init.d/neutron-openvswitch-agent restart

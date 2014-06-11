@@ -47,15 +47,6 @@
     #/etc/neutron/neutron.conf
     #/etc/neutron/plugin.ini
 
-SDNVE_AGENT="plugin-archive/int_support/neutron-sdnve-agent"
-SDNVE_AGENT_RC="plugin-archive/int_support/rc/neutron-sdnve-agent"
-SDNVE_PLUGIN_DIR="plugin-latest/ibm"
-SDNVE_PLUGIN_INI="plugin-archive/int_support/sdnve_neutron_plugin.ini"
-
-RC_DIR=/etc/init.d
-PYTHON_PKG_DIR=`python -c "from distutils.sysconfig import get_python_lib; print get_python_lib()"`
-NEUTRON_EXE=`which neutron-server`
-
 get_pid () {
     [ $# -ne 1 ] && return 0
     local NAME=$1
@@ -79,6 +70,17 @@ echo_b () {
     [ $# -ne 1 ] && return 0
     echo -e "\033[34m$1\033[0m"
 }
+
+SDNVE_AGENT="plugin-archive/int_support/neutron-sdnve-agent"
+SDNVE_AGENT_RC="plugin-archive/int_support/rc/neutron-sdnve-agent"
+SDNVE_PLUGIN_DIR="plugin-latest/ibm"
+SDNVE_PLUGIN_INI="plugin-archive/int_support/sdnve_neutron_plugin.ini"
+SDNVE_DHCP_AGENT="plugin-latest/dhcp/sdnvedhcp.py"
+DHCP_AGENT_INT="/etc/neutron/dhcp_agent.ini"
+
+RC_DIR=/etc/init.d
+PYTHON_PKG_DIR=`python -c "from distutils.sysconfig import get_python_lib; print get_python_lib()"`
+NEUTRON_EXE=`which neutron-server`
 
 if [ -z ${PYTHON_PKG_DIR} ]; then
     echo_r "Cannot find python path, pls install python first"
@@ -105,6 +107,9 @@ else
 	PLUGIN_CFG_DIR=/etc/neutron/plugins
 	BIN_DIR=/opt/stack/neutron/bin
 fi
+
+echo_g ">>>Checking OpenStack environment..."
+[ ! -r ${PLUGIN_LIB_DIR} -o ! -r ${PLUGIN_CFG_DIR} ] && echo_r "OpenStack is not present, exiting" && exit 1
 
 echo_g ">>>Checking installation package..."
 [ ! -r plugin-latest/ibm ] && echo_r "Plugin is not present, exiting" && exit 1
@@ -145,7 +150,13 @@ echo "Kill the neutron-l3-agent"
 L3_PID=$(get_pid neutron-l3-agent)
 [ -n "$L3_PID" ] && kill -9 $L3_PID
 
-echo ">>>Copy the Plugin files into system"
+echo "Backup /etc/neutron/neutron.conf"
+[ ! -e /etc/neutron/neutron.conf.bak ] && cp /etc/neutron/neutron.conf /etc/neutron/neutron.conf.bak
+
+echo "Backup /etc/nova/nova.conf"
+[ ! -e /etc/nova/nova.conf.bak ] && cp /etc/nova/nova.conf /etc/nova/nova.conf.bak
+
+echo ">>>Copy the Plugin files"
 cp -a ${SDNVE_PLUGIN_DIR} ${PLUGIN_LIB_DIR}/
 cp -a  ${PLUGIN_CFG_DIR}/openvswitch/  ${PLUGIN_CFG_DIR}/ibm
 rm ${PLUGIN_CFG_DIR}/ibm/ovs_neutron_plugin.ini && cp ${SDNVE_PLUGIN_INI} ${PLUGIN_CFG_DIR}/ibm
@@ -156,8 +167,6 @@ sleep 1
 
 echo_g ">>>Configuring the IBM Plugin files"
 if [ "${PRODUCT}" = "OSEE" -o "${PRODUCT}" = "RDO" ]; then
-    echo "Backup /etc/nova/nova.conf"
-	[ ! -e /etc/nova/nova.conf.bak ] && cp /etc/nova/nova.conf /etc/nova/nova.conf.bak
     echo "Update /etc/nova/nova.conf"
     perl -p -i -e 's/^(security_group_api.*)/#\1/' /etc/nova/nova.conf
     perl -p -i -e 's/^(linuxnet_interface_driver\s*=\s*).*/#\1/' /etc/nova/nova.conf
@@ -166,8 +175,22 @@ if [ "${PRODUCT}" = "OSEE" -o "${PRODUCT}" = "RDO" ]; then
     chgrp nova /etc/nova/nova.conf
 fi
 
-echo "Backup /etc/neutron/neutron.conf"
-[ ! -e /etc/neutron/neutron.conf.bak ] && cp /etc/neutron/neutron.conf /etc/neutron/neutron.conf.bak
+echo_g ">>>Copy and Configure the DHCP agent"
+if [[ $# -eq 1 && $1 -eq 0 && -f ${SDNVE_DHCP_AGENT} ]]; then #only on Compute node
+    echo_g ">>>[Compute Node]: Copy the dhcp agent"
+    cp -f ${SDNVE_DHCP_AGENT} ${PYTHON_PKG_DIR}/neutron/agent/linux/ 
+    echo "Backup /etc/neutron/dhcp_agent.ini"
+    [ ! -e /etc/neutron/dhcp_agent.ini.bak ] && cp /etc/neutron/dhcp_agent.ini /etc/neutron/dhcp_agent.ini.bak
+    echo "Update /etc/neutron/dhcp_agent.ini"
+    perl -p -i -e 's/^(#\s*use_namespaces.*)/use_namespaces = True/' /etc/neutron/dhcp_agent.ini
+    sed -i '/interface_driver = neutron.agent.linux.interface.OVSInterfaceDriver/a\interface_driver = neutron.agent.linux.sdnvedhcp.SdnveDhcpBridgeInterfaceDriver' /etc/neutron/dhcp_agent.ini
+    echo "Backup /usr/share/neutron/rootwrap/dhcp.filters"
+    [ ! -e /usr/share/neutron/rootwrap/dhcp.filters.bak ] && cp /usr/share/neutron/rootwrap/dhcp.filters /usr/share/neutron/rootwrap/dhcp.filters.bak
+    echo "Update /usr/share/neutron/rootwrap/dhcp.filters"
+    sed -i '/mm-ctl/a\dactl: CommandFilter, dactl, root' /usr/share/neutron/rootwrap/dhcp.filters
+    echo "Update iptables rules"
+    iptables -A POSTROUTING -t mangle -p udp --dport 68 -j CHECKSUM --checksum-fill
+fi
 
 echo "Update the neutron.conf to point to new plugin"
 perl -p -i -e 's/^(core_plugin\s*=\s*).*/\1neutron.plugins.ibm.sdnve_neutron_plugin.SdnvePluginV2/' /etc/neutron/neutron.conf
@@ -203,7 +226,7 @@ chgrp neutron /etc/neutron/plugin.ini
 
 sleep 1
 
-if [[ $# -eq 1 && $1 -eq 1 ]]; then
+if [[ $# -eq 1 && $1 -eq 1 ]]; then #only on Control node
     echo_g ">>>[Control Node]: Start the neutron-server"
     #python ${NEUTRON_EXE} --config-file /etc/neutron/neutron.conf --config-file ${PLUGIN_CFG_DIR}/ibm/sdnve_neutron_plugin.ini > /tmp/ibm-q-svc.log 2>&1 &
     /etc/init.d/neutron-server restart && sleep 1 
@@ -213,6 +236,11 @@ echo_g ">>>Start the SDN-VE Agent"
 #python ${BIN_DIR}/neutron-sdnve-agent  --config-file /etc/neutron/neutron.conf --config-file  ${PLUGIN_CFG_DIR}/ibm/sdnve_neutron_plugin.ini >/tmp/ibm-q-agt.log 2>&1 &
 /etc/init.d/neutron-sdnve-agent start && sleep 1 
 #echo `ps aux|grep neutron-sdnve-agent|grep -v grep`
+
+if [[ $# -eq 1 && $1 -eq 0 && -f ${SDNVE_DHCP_AGENT} ]]; then #only on Compute node
+    echo_g ">>>[Compute Node]: Restart the dhcp agent"
+    service neutron-dhcp-agent restart
+fi
 
 echo_g ">>>Restart openvswitch"
 if [ "${PRODUCT}" = "OSEE" -o "${PRODUCT}" = "RDO" ]
