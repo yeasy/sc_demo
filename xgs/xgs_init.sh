@@ -1,6 +1,7 @@
 #!/bin/sh
 #Follow the steps at https://w3-connections.ibm.com/wikis/home?lang=en-us#!/wiki/Stefan's%20Corner/page/Havana%20--%20XGSPlugin%20Installation%20Instructions%20V1
 #https://w3-connections.ibm.com/wikis/home?lang=en-us#!/wiki/Stefan's%20Corner/page/IceHouse%20--%20XGSPlugin%20Installation%20Instructions
+#This script will create two nets/subnets and boot an xgs vm
 
 [ ! -e header.sh ] && echo_r "Not found header file" && exit -1
 . ./header.sh
@@ -8,10 +9,10 @@
 ## MAIN PROCESSING START ##
 echo_b ">>>Starting the IPSaaS initialization..."
 
-echo_b "Checking the xgs image..."
+echo_b "Checking the xgs image file..."
 [ ! -f ${IMG_XGS_FILE} ] && echo_r "vm image ${IMG_XGS_FILE} not found" exit -1;
 
-echo_b "Check the user image..."
+echo_b "Check the user image file..."
 [ ! -f ${IMG_USER_FILE} ] && echo_r "vm image ${IMG_USER_FILE} not found" exit -1; 
 
 echo_b "Checking tenant ${TENANT_NAME}"
@@ -44,15 +45,17 @@ if [ -n "${ROUTER_ID}" -a -n "${SUBNET_ID1}" -a -n "${SUBNET_ID2}" ]; then
 fi
 
 echo_b "Adding the user_vm, xgs, xgs_inited image file into glance..."
-create_image ${IMG_USER_NAME} ${IMG_USER_FILE}
-create_image ${IMG_XGS_NAME} ${IMG_XGS_FILE}
-glance image-update --property hw_disk_bus=ide --property hw_vif_model=rtl8139 ${IMG_XGS_NAME}
+create_image "${IMG_USER_NAME}" "${IMG_USER_FILE}"
+create_image "${IMG_XGS_NAME}" "${IMG_XGS_FILE}"
+glance image-update --property hw_disk_bus=ide --property hw_vif_model=rtl8139 "${IMG_XGS_NAME}"
 #create_image ${IMG_XGS_INITED_NAME} ${IMG_XGS_INITED_FILE}
 #glance image-update --property hw_disk_bus=ide --property hw_vif_model=rtl8139 ${IMG_XGS_INITED_NAME}
-IMG_XGS_ID=`glance image-list|grep ${IMG_XGS_NAME}|awk '{print $2}'`
+IMG_XGS_ID=`glance image-list|grep "${IMG_XGS_NAME}"|awk '{print $2}'`
 [ -z "${IMG_XGS_ID}" ] && echo_r "image ${IMG_XGS_NAME} is not found in glance" && exit -1
-IMG_USER_ID=`glance image-list|grep ${IMG_USER_NAME}|awk '{print $2}'`
-[ -z "${IMG_USER_ID}" ] && echo_r "image ${IMG_USER_NAME} is not found in glance" && exit -1
+IMG_USER_ID=`glance image-list|grep "${IMG_USER_NAME}"|awk '{print $2}'`
+[ -z "${IMG_USER_ID}" ] && echo_r "image "${IMG_USER_NAME}" is not found in glance" && exit -1
+IMG_ROUTED_ID=`glance image-list|grep "${IMG_ROUTED_NAME}"|awk '{print $2}'`
+[ -z "${IMG_ROUTED_ID}" ] && echo_r "image ${IMG_ROUTED_NAME} is not found in glance" && exit -1
 
 echo_b "Creating new flavors..."
 [ -z "`nova flavor-list|grep ex.xgs`" ] && nova flavor-create --is-public true ex.xgs 20 1024 10 1
@@ -76,7 +79,13 @@ nova boot ${VM_XGS_NAME} --image ${IMG_XGS_ID} --flavor 20 --availability-zone a
 --nic net-id=$(get_netid_by_name $NET_XGS2) \
 --nic net-id=$(get_netid_by_name $NET_XGS3) \
 --nic net-id=$(get_netid_by_name $NET_XGS4)
-sleep 2;
+sleep 2
+
+echo_b "Booting the routed_mb vm..."
+nova boot ${VM_ROUTED_NAME} --image ${IMG_ROUTED_ID} --flavor 1 --availability-zone az2 \
+--nic net-id=$(get_netid_by_name "$NET_INT1") \
+--nic net-id=$(get_netid_by_name "$NET_INT2")
+sleep 1
 
 echo_b "Booting the user vm..."
 nova boot ${VM_USER_NAME1} --image ${IMG_USER_ID} --flavor 10 --availability-zone az1 \

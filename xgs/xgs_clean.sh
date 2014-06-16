@@ -26,6 +26,9 @@ delete_vm ${VM_USER_NAME2}
 echo_b "Deleting the xgs vm..."
 delete_vm ${VM_XGS_NAME}
 
+echo_b "Deleting the routed_mb vm..."
+delete_vm ${VM_ROUTED_NAME}
+
 source ~/keystonerc_admin
 
 echo_b "Clear the images from glance and the flavor..."
