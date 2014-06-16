@@ -28,7 +28,7 @@ from neutron.db import agentschedulers_db
 from neutron.db import quota_db  # noqa
 from neutron.openstack.common import importutils
 
-from neutron.common import constants as q_const
+from neutron.common import constants as n_const
 from neutron.common import exceptions as n_exc
 from neutron.common import rpc as n_rpc
 from neutron.common import topics
@@ -162,7 +162,7 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
         self.notifier = AgentNotifierApi(topics.AGENT)
 
         # dhcp
-        self.agent_notifiers[q_const.AGENT_TYPE_DHCP] = (
+        self.agent_notifiers[n_const.AGENT_TYPE_DHCP] = (
             dhcp_rpc_agent_api.DhcpAgentNotifyAPI()
         )
 
@@ -260,11 +260,7 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
     @_ha
     def delete_network(self, context, id):
         LOG.debug(_("Delete network in progress: %s"), id)
-        session = context.session
-
-        with session.begin(subtransactions=True):
-            self._process_l3_delete(context, id)
-            super(SdnvePluginV2, self).delete_network(context, id)
+        super(SdnvePluginV2, self).delete_network(context, id)
 
         (res, data) = self.sdnve_client.sdnve_delete('network', id)
         if res not in constants.HTTP_ACCEPTABLE:
