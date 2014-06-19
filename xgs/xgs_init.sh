@@ -40,8 +40,8 @@ SUBNET_ID1=$(get_subnetid_by_name "$SUBNET_INT1")
 SUBNET_ID2=$(get_subnetid_by_name "$SUBNET_INT2")
 if [ -n "${ROUTER_ID}" -a -n "${SUBNET_ID1}" -a -n "${SUBNET_ID2}" ]; then 
     echo "Adding router interface into the user subnets..."
-    neutron router-interface-add ${ROUTER_ID} ${SUBNET_ID1}
-    neutron router-interface-add ${ROUTER_ID} ${SUBNET_ID2}
+    #neutron router-interface-add ${ROUTER_ID} ${SUBNET_ID1}
+    #neutron router-interface-add ${ROUTER_ID} ${SUBNET_ID2}
 fi
 
 echo_b "Adding the user_vm, xgs, xgs_inited image file into glance..."
@@ -73,6 +73,20 @@ nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
 nova secgroup-add-rule default tcp 80 80 0.0.0.0/0
 nova secgroup-add-rule default tcp 443 443 0.0.0.0/0
 
+echo_b "Booting the user vms..."
+nova boot ${VM_USER_NAME1} --image ${IMG_USER_ID} --flavor 10 --availability-zone az1 \
+--nic net-id=$(get_netid_by_name "$NET_INT1")
+sleep 1
+nova boot ${VM_USER_NAME2} --image ${IMG_USER_ID} --flavor 10 --availability-zone az1 \
+--nic net-id=$(get_netid_by_name "$NET_INT2")
+sleep 1
+
+echo_b "Booting the routed_mb vm..."
+nova boot ${VM_ROUTED_NAME} --image ${IMG_ROUTED_ID} --flavor 1 --availability-zone az1 \
+--nic net-id=$(get_netid_by_name "$NET_INT1") \
+--nic net-id=$(get_netid_by_name "$NET_INT2")
+sleep 1
+
 echo_b "Booting the xgs vm..."
 nova boot ${VM_XGS_NAME} --image ${IMG_XGS_ID} --flavor 20 --availability-zone az1 \
 --nic net-id=$(get_netid_by_name $NET_XGS1) \
@@ -81,23 +95,13 @@ nova boot ${VM_XGS_NAME} --image ${IMG_XGS_ID} --flavor 20 --availability-zone a
 --nic net-id=$(get_netid_by_name $NET_XGS4)
 sleep 2
 
-echo_b "Booting the routed_mb vm..."
-nova boot ${VM_ROUTED_NAME} --image ${IMG_ROUTED_ID} --flavor 1 --availability-zone az2 \
---nic net-id=$(get_netid_by_name "$NET_INT1") \
---nic net-id=$(get_netid_by_name "$NET_INT2")
-sleep 1
-
-echo_b "Booting the user vm..."
-nova boot ${VM_USER_NAME1} --image ${IMG_USER_ID} --flavor 10 --availability-zone az1 \
---nic net-id=$(get_netid_by_name "$NET_INT1")
-sleep 1
-nova boot ${VM_USER_NAME2} --image ${IMG_USER_ID} --flavor 10 --availability-zone az1 \
---nic net-id=$(get_netid_by_name "$NET_INT2")
-
 unset OS_TENANT_NAME
 unset OS_USERNAME
 unset OS_PASSWORD
 unset OS_AUTH_URL
 
-echo_b "Suggest change xgs's management interfaces to other bridge."
+echo_b "Suggest move xgs's management interfaces to other bridge in the compute node."
+echo "10.0.1.2:" $(get_port_by_ip 10.0.1.2)
+echo "10.0.2.2:" $(get_port_by_ip 10.0.2.2)
+
 echo_g "<<<Done" && exit 0

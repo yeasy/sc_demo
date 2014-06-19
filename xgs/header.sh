@@ -85,6 +85,23 @@ get_netid_by_name () {
     echo `neutron net-list|grep "${NAME}"|awk '{print $2}'`
 }
 
+#IP
+get_portid_by_ip () {
+    [ $# -ne 1 ] && echo_r "Wrong parameter number is given: $#" && return 0
+    local IP=$1
+    [ -z "`neutron port-list|grep \"${IP}\"`" ] && return 0
+    echo `neutron port-list|grep "${IP}"|awk '{print $2}'`
+}
+
+#IP
+get_port_by_ip () {
+    [ $# -ne 1 ] && echo_r "Wrong parameter number is given: $#" && return 0
+    local IP=$1
+    port_id=$(get_portid_by_ip $IP)
+    [ -z "$port_id" ] && return 0
+    echo 'tap'${port_id:0:11}
+}
+
 #subnet_name
 get_subnetid_by_name () {
     [ $# -ne 1 ] && echo_r "Wrong parameter number is given: $#" && return 0
