@@ -322,8 +322,8 @@ class SdnvePluginV2(db_base_plugin_v2.NeutronDbPluginV2,
         # NOTE(mb): Remove this block when controller is updated
         # Remove the information that the controller does not accept
         sdnve_port = port.copy()
-        sdnve_port.pop('device_id', None)
-        sdnve_port.pop('device_owner', None)
+        #sdnve_port.pop('device_id', None)
+        #sdnve_port.pop('device_owner', None)
 
         (res, data) = self.sdnve_client.sdnve_create('port', sdnve_port)
         if res not in constants.HTTP_ACCEPTABLE:
