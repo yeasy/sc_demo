@@ -18,11 +18,11 @@ USER_EMAIL="user@domain.com"
 USER_ROLE="_member_"
 USER_ROLE2="Member"
 
-IMG_XGS_NAME="ISNP_XGS"
+IMG_XGS_NAME="xgs_mb"
 IMG_XGS_FILE=ISNP_5.2_20140502-1219_personal_compat.qcow2
 IMG_XGS_INITED_NAME="ISNP_XGS_INITED"
 IMG_XGS_INITED_FILE=ISNP_5.2_20140502-1219_personal_compat_inited.qcow2
-VM_XGS_NAME="xgs"
+VM_XGS_NAME="xgs_mb"
 
 NET_XGS1="net_xgs_manage1"
 NET_XGS2="net_xgs_manage2"
@@ -47,7 +47,7 @@ IMG_USER_FILE=ubuntu-pc.img
 VM_USER_NAME1="user_vm1"
 VM_USER_NAME2="user_vm2"
 
-IMG_ROUTED_NAME="Ubuntu 12.04"
+IMG_ROUTED_NAME="routed_mb"
 VM_ROUTED_NAME="routed_mb"
 
 
