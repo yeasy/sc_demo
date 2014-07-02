@@ -56,6 +56,18 @@ class SdnveDhcpBridgeInterfaceDriver(interface.LinuxInterfaceDriver):
 
             cmd = ['dactl','register', 'neutrondhcpport', port_id, network_id, bridge_name, tap_name, device_name]
             utils.execute(cmd, self.root_helper)
+
+            # create the iptables mangle rule in the namespace
+            if namespace == None:
+                #delete and readd the iptables global rule
+                cmd = ["iptables", "-t", "mangle", "-D", "POSTROUTING", "-p", "udp","--dport", "bootpc", "-j", "CHECKSUM", "--checksum-fill"]
+                utils.execute(cmd, self.root_helper)         
+                cmd = ["iptables", "-t", "mangle", "-A", "POSTROUTING", "-p", "udp","--dport", "bootpc", "-j", "CHECKSUM", "--checksum-fill"]
+                utils.execute(cmd, self.root_helper)         
+            else:
+                # 
+                cmd = ['ip','netns', 'exec', "%s"%namespace, "iptables", "-t", "mangle", "-A", "POSTROUTING", "-p", "udp","--dport", "bootpc", "-j", "CHECKSUM", "--checksum-fill"]
+                utils.execute(cmd, self.root_helper)         
             
         else:
             LOG.info(_("Device %s already exists"), device_name)
@@ -69,6 +81,12 @@ class SdnveDhcpBridgeInterfaceDriver(interface.LinuxInterfaceDriver):
             utils.execute(cmd, self.root_helper)
             device.link.delete()
             LOG.debug(_("Unplugged interface '%s'"), device_name)
+            # clean up
+            #if namespace:
+            #    ip = ip_lib.IPWrapper(self.root_helper,namespace)
+            #    LOG.info(_("cleanup namespace=%s"%namespace))            
+            #    ip.garbage_collect_namespace()
+            
         except RuntimeError:
             LOG.error(_("Failed unplugging interface '%s'"),
                       device_name)

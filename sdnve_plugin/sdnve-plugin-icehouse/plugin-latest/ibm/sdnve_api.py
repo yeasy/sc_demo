@@ -28,7 +28,7 @@ from neutron.api.v2 import attributes
 from neutron.openstack.common import log as logging
 from neutron.plugins.ibm.common import config  # noqa
 from neutron.plugins.ibm.common import constants
-from neutron import wsgi
+from neutron.wsgi import Serializer
 
 LOG = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ SDNVE_URL = 'https://%s:%s%s'
 
 
 class RequestHandler(object):
-    '''Handles processing requests to and responses from controller.'''
+    '''Handles processeing requests to and responses from controller.'''
 
     def __init__(self, controller_ips=None, port=None, ssl=None,
                  base_url=None, userid=None, password=None,
@@ -53,7 +53,7 @@ class RequestHandler(object):
         :param port: Username for authentication.
         :param timeout: Time out for http requests.
         :param userid: User id for accessing controller.
-        :param password: Password for accessing the controller.
+        :param password: Password for accessing the controlelr.
         :param base_url: The base url for the controller.
         :param controller_ips: List of controller IP addresses.
         :param formats: Supported formats.
@@ -92,7 +92,7 @@ class RequestHandler(object):
         '''Serializes a dictionary with a single key.'''
 
         if isinstance(data, dict):
-            return wsgi.Serializer().serialize(data, self.content_type())
+            return Serializer().serialize(data, self.content_type())
         elif data:
             raise TypeError(_("unable to serialize object type: '%s'") %
                             type(data))
@@ -106,7 +106,7 @@ class RequestHandler(object):
         if status_code == httplib.NO_CONTENT:
             return data
         try:
-            deserialized_data = wsgi.Serializer(
+            deserialized_data = Serializer(
                 metadata=self._s_meta).deserialize(data, self.content_type())
             deserialized_data = deserialized_data['body']
         except Exception:
@@ -161,7 +161,7 @@ class RequestHandler(object):
                 myurl += '?' + urllib.urlencode(params, doseq=1)
 
             try:
-                LOG.debug(_("Sending request to SDN-VE. url: "
+                LOG.info(_("Sending request to SDN-VE. url: "
                             "%(myurl)s method: %(method)s body: "
                             "%(body)s header: %(header)s "),
                           {'myurl': myurl, 'method': method,
@@ -295,6 +295,14 @@ class Client(RequestHandler):
             return tenant_id, tenant_type
         return None, None
 
+    def sdnve_get_service_tenant_id(self):
+        tenants = self.keystoneclient.get_tenants()
+        LOG.info(_("%(tenants)s"),{"tenants":tenants})
+        for tenant in tenants:
+            if tenant.name == u"service":
+                LOG.info(_("service tenant is:%s"),tenant.id)
+                return tenant.id
+
     def sdnve_check_and_create_tenant(self, os_tenant_id, network_type=None):
 
         if not os_tenant_id:
@@ -360,6 +368,16 @@ class KeystoneClient(object):
                                        password=password,
                                        tenant_name=tenant_name,
                                        auth_url=auth_url)
+
+    def get_tenants(self):
+
+        try:
+            return self.client.tenants.list()
+        except Exception:
+            LOG.exception(_("Did not find tenants"))
+
+    def get_service_tenant_id(self):
+        pass
 
     def get_tenant_byid(self, id):
 
