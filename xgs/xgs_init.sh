@@ -76,16 +76,16 @@ nova secgroup-add-rule default tcp 443 443 0.0.0.0/0
 echo_b "Booting the user vms..."
 [ -z "`nova list|grep \"${VM_USER_NAME1}\"`" ] && nova boot ${VM_USER_NAME1} --image ${IMG_USER_ID} --flavor 10 --availability-zone az1 \
 --nic net-id=$(get_netid_by_name "$NET_INT1")
-sleep 1
+sleep 3
 [ -z "`nova list|grep \"${VM_USER_NAME2}\"`" ] && nova boot ${VM_USER_NAME2} --image ${IMG_USER_ID} --flavor 10 --availability-zone az1 \
 --nic net-id=$(get_netid_by_name "$NET_INT2")
-sleep 1
+sleep 3
 
 echo_b "Booting the routed_mb vm..."
 [ -z "`nova list|grep \"${VM_ROUTED_NAME}\"`" ] && nova boot ${VM_ROUTED_NAME} --image ${IMG_ROUTED_ID} --flavor 1 --availability-zone az1 \
 --nic net-id=$(get_netid_by_name "$NET_INT1") \
 --nic net-id=$(get_netid_by_name "$NET_INT2")
-sleep 1
+sleep 3
 
 echo_b "Booting the xgs vm..."
 [ -z "`nova list|grep \"${VM_XGS_NAME}\"`" ] && nova boot ${VM_XGS_NAME} --image ${IMG_XGS_ID} --flavor 20 --availability-zone az1 \
@@ -93,9 +93,9 @@ echo_b "Booting the xgs vm..."
 --nic net-id=$(get_netid_by_name $NET_XGS2) \
 --nic net-id=$(get_netid_by_name $NET_XGS3) \
 --nic net-id=$(get_netid_by_name $NET_XGS4)
-sleep 2
+sleep 5
 
-echo_b "Suggest move xgs's management interfaces to other bridge in the compute node."
+echo_b "Suggest move xgs's management interfaces in the compute node: br-mv-port br-eth0 tapxxx."
 echo "10.0.1.2:" $(get_port_by_ip 10.0.1.2)
 echo "10.0.2.2:" $(get_port_by_ip 10.0.2.2)
 

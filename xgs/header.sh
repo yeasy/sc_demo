@@ -22,7 +22,7 @@ IMG_XGS_NAME="xgs_mb"
 IMG_XGS_FILE=ISNP_5.2_20140502-1219_personal_compat.qcow2
 IMG_XGS_INITED_NAME="ISNP_XGS_INITED"
 IMG_XGS_INITED_FILE=ISNP_5.2_20140502-1219_personal_compat_inited.qcow2
-VM_XGS_NAME="xgs_mb"
+VM_XGS_NAME="trans_mb"
 
 NET_XGS1="net_xgs_manage1"
 NET_XGS2="net_xgs_manage2"
