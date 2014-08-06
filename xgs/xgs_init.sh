@@ -45,15 +45,19 @@ if [ -n "${ROUTER_ID}" -a -n "${SUBNET_ID1}" -a -n "${SUBNET_ID2}" ]; then
 fi
 
 echo_b "Adding the user_vm, xgs, xgs_inited image file into glance..."
-create_image "${IMG_USER_NAME}" "${IMG_USER_FILE}"
+#create_image "${IMG_USER_NAME}" "${IMG_USER_FILE}"
 create_image "${IMG_XGS_NAME}" "${IMG_XGS_FILE}"
+create_image "${IMG_USER_NAME1}" "${IMG_USER_FILE}"
+create_image "${IMG_USER_NAME2}" "${IMG_USER_FILE}"
 glance image-update --property hw_disk_bus=ide --property hw_vif_model=rtl8139 "${IMG_XGS_NAME}"
 #create_image ${IMG_XGS_INITED_NAME} ${IMG_XGS_INITED_FILE}
 #glance image-update --property hw_disk_bus=ide --property hw_vif_model=rtl8139 ${IMG_XGS_INITED_NAME}
 IMG_XGS_ID=`glance image-list|grep "${IMG_XGS_NAME}"|awk '{print $2}'`
 [ -z "${IMG_XGS_ID}" ] && echo_r "image ${IMG_XGS_NAME} is not found in glance" && exit -1
-IMG_USER_ID=`glance image-list|grep "${IMG_USER_NAME}"|awk '{print $2}'`
-[ -z "${IMG_USER_ID}" ] && echo_r "image "${IMG_USER_NAME}" is not found in glance" && exit -1
+IMG_USER_ID1=`glance image-list|grep "${IMG_USER_NAME1}"|awk '{print $2}'`
+[ -z "${IMG_USER_ID1}" ] && echo_r "image "${IMG_USER_NAME1}" is not found in glance" && exit -1
+IMG_USER_ID2=`glance image-list|grep "${IMG_USER_NAME2}"|awk '{print $2}'`
+[ -z "${IMG_USER_ID2}" ] && echo_r "image "${IMG_USER_NAME2}" is not found in glance" && exit -1
 IMG_ROUTED_ID=`glance image-list|grep "${IMG_ROUTED_NAME}"|awk '{print $2}'`
 [ -z "${IMG_ROUTED_ID}" ] && echo_r "image ${IMG_ROUTED_NAME} is not found in glance" && exit -1
 
@@ -74,26 +78,22 @@ nova secgroup-add-rule default tcp 80 80 0.0.0.0/0
 nova secgroup-add-rule default tcp 443 443 0.0.0.0/0
 
 echo_b "Booting the user vms..."
-[ -z "`nova list|grep \"${VM_USER_NAME1}\"`" ] && nova boot ${VM_USER_NAME1} --image ${IMG_USER_ID} --flavor 10 --availability-zone az1 \
---nic net-id=$(get_netid_by_name "$NET_INT1")
-sleep 3
-[ -z "`nova list|grep \"${VM_USER_NAME2}\"`" ] && nova boot ${VM_USER_NAME2} --image ${IMG_USER_ID} --flavor 10 --availability-zone az1 \
---nic net-id=$(get_netid_by_name "$NET_INT2")
-sleep 3
+[ -z "`nova list|grep \"${VM_USER_NAME1}\"`" ] && nova boot ${VM_USER_NAME1} --image ${IMG_USER_ID1} --flavor 10 --availability-zone az1 \
+--nic net-id=$(get_netid_by_name "$NET_INT1") &&  sleep 5
+[ -z "`nova list|grep \"${VM_USER_NAME2}\"`" ] && nova boot ${VM_USER_NAME2} --image ${IMG_USER_ID2} --flavor 10 --availability-zone az1 \
+--nic net-id=$(get_netid_by_name "$NET_INT2") && sleep 5
 
 echo_b "Booting the routed_mb vm..."
 [ -z "`nova list|grep \"${VM_ROUTED_NAME}\"`" ] && nova boot ${VM_ROUTED_NAME} --image ${IMG_ROUTED_ID} --flavor 1 --availability-zone az1 \
 --nic net-id=$(get_netid_by_name "$NET_INT1") \
---nic net-id=$(get_netid_by_name "$NET_INT2")
-sleep 3
+--nic net-id=$(get_netid_by_name "$NET_INT2") &&  sleep 5
 
 echo_b "Booting the xgs vm..."
 [ -z "`nova list|grep \"${VM_XGS_NAME}\"`" ] && nova boot ${VM_XGS_NAME} --image ${IMG_XGS_ID} --flavor 20 --availability-zone az1 \
 --nic net-id=$(get_netid_by_name $NET_XGS1) \
 --nic net-id=$(get_netid_by_name $NET_XGS2) \
 --nic net-id=$(get_netid_by_name $NET_XGS3) \
---nic net-id=$(get_netid_by_name $NET_XGS4)
-sleep 5
+--nic net-id=$(get_netid_by_name $NET_XGS4) && sleep 10
 
 echo_b "Suggest move xgs's management interfaces in the compute node: br-mv-port br-eth0 tapxxx."
 echo "10.0.1.2:" $(get_port_by_ip 10.0.1.2)
