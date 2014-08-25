@@ -20,8 +20,8 @@ USER_ROLE2="Member"
 
 IMG_XGS_NAME="trans_mb"
 IMG_XGS_FILE=ISNP_5.2_20140502-1219_personal_compat.qcow2
-#IMG_XGS_INITED_NAME="ISNP_XGS_INITED"
-#IMG_XGS_INITED_FILE=ISNP_5.2_20140502-1219_personal_compat_inited.qcow2
+IMG_XGS_INITED_NAME="ISNP_XGS_INITED"
+IMG_XGS_INITED_FILE=ISNP_5.2_20140502-1219_personal_compat_inited.qcow2
 VM_XGS_NAME="trans_mb"
 
 NET_XGS1="net_xgs_manage1"
@@ -40,7 +40,6 @@ SUBNET_INT2="subnet_int2"
 
 ROUTER_NAME="router"
 
-#IMG_USER_NAME="Ubuntu 12.04"
 IMG_USER_FILE=ubuntu-pc.img
 #IMG_USER_URL=https://launchpad.net/cirros/trunk/0.3.0/+download/cirros-0.3.0-x86_64-disk.img
 #if not existed will download from ${IMG_USER_URL}

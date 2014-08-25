@@ -83,6 +83,8 @@ echo_b "Booting the user vms..."
 [ -z "`nova list|grep \"${VM_USER_NAME2}\"`" ] && nova boot ${VM_USER_NAME2} --image ${IMG_USER_ID2} --flavor 10 --availability-zone az1 \
 --nic net-id=$(get_netid_by_name "$NET_INT2") && sleep 5
 
+#exit
+
 echo_b "Booting the routed_mb vm..."
 [ -z "`nova list|grep \"${VM_ROUTED_NAME}\"`" ] && nova boot ${VM_ROUTED_NAME} --image ${IMG_ROUTED_ID} --flavor 1 --availability-zone az1 \
 --nic net-id=$(get_netid_by_name "$NET_INT1") \
