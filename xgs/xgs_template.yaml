@@ -2,23 +2,26 @@
 heat_template_version: 2013-05-23
 
 description: >
-  HOT template that just defines a single compute instance.
-  Contains just base features to verify base HOT support.
+  HOT template that just defines two user vm, a trans_mb and a routed_mb.
+  Contains just base components to verify base demo.
 
 parameters:
-  #Parameters for the user vm
-  user_image_id_1:
+  user_image_1:
     type: string
-    description: ID of the image to use for the user instance
-  user_image_id_2:
+    description: ID or name of the image to use for the user instance
+    default: user_vm1
+  user_image_2:
     type: string
-    description: ID of the image to use for the user instance
-  xgs_image_id:
+    description: ID or name of the image to use for the user instance
+    default: user_vm2
+  xgs_image:
     type: string
-    description: ID of the image to use for the XGS instance
-  routed_image_id:
+    description: ID or name of the image to use for the XGS instance
+    default: trans_mb
+  routed_image:
     type: string
-    description: ID of the image to use for the routed_mb instance
+    description: ID or name of the image to use for the routed_mb instance
+    default: routed_mb
   user_flavor:
     type: string
     description: Flavor for the user instance to be created
@@ -33,6 +36,10 @@ parameters:
     constraints:
       - allowed_values: [ex.tiny, ex.xgs]
         description: Value must be one of 'ex.tiny' or 'ex.xgs'
+  availability_zone:
+    type: string
+    description: The Availability Zone to launch the instance.
+    default: az1
 
 resources:
 #Networks
@@ -124,36 +131,83 @@ resources:
     type: OS::Nova::Server
     properties:
       name: user_vm1
-      image: { get_param: user_image_id_1 }
+      image: { get_param: user_image_1 }
       flavor: { get_param: user_flavor }
       networks: [{network:{get_resource: net_int1}}]
-      availability_zone: az1
+      availability_zone: { get_param: availability_zone }
+      security_groups: [{ get_resource: the_sg }]
   user_vm2:
     type: OS::Nova::Server
+    depends_on: user_vm1
     properties:
       name: user_vm2
-      image: { get_param: user_image_id_2 }
+      image: { get_param: user_image_2 }
       flavor: { get_param: user_flavor }
       networks: [{network: {get_resource: net_int2}}]
-      availability_zone: az1
+      availability_zone: { get_param: availability_zone }
+      security_groups: [{ get_resource: the_sg }]
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+            sysctl -w net.ipv4.ip_forward=1
+          params:
+            param1: test
   xgs_mb:
     type: OS::Nova::Server
+    depends_on: [ user_vm1, user_vm2 ]
     properties:
       name: xgs_mb
-      image: { get_param: xgs_image_id }
+      image: { get_param: xgs_image }
       flavor: { get_param: xgs_flavor }
       networks: [{network: {get_resource: net_xgs_manage1}},{network: {get_resource: net_xgs_manage2}},{network: {get_resource: net_xgs_data1}},{network: {get_resource: net_xgs_data2}}]
-      availability_zone: az1
+      availability_zone: { get_param: availability_zone }
+      security_groups: [{ get_resource: the_sg }]
   routed_mb:
     type: OS::Nova::Server
+    depends_on: [ user_vm1, user_vm2 ]
     properties:
       name: routed_mb
-      image: { get_param: routed_image_id }
+      image: { get_param: routed_image }
       flavor: { get_param: user_flavor }
       networks: [{network: {get_resource: net_int1}},{network: {get_resource: net_int2}}]
-      availability_zone: az1
+      availability_zone: { get_param: availability_zone }
+      security_groups: [{ get_resource: the_sg }]
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+            sysctl -w net.ipv4.ip_forward=1
+          params:
+            param1: test
+#Others
+  the_sg:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: the_sg
+      description: Allow Ping, SSH and Web
+      rules: 
+      - protocol: icmp
+      - protocol: tcp
+        port_range_min: 22
+        port_range_max: 22
+      - protocol: tcp
+        port_range_min: 80
+        port_range_max: 80
+      - protocol: tcp
+        port_range_min: 443
+        port_range_max: 443
   
 outputs:
-  instance_ip:
+  user_vm1_ip:
     description: The IP address of the deployed instance
-    value: { get_attr: [user_vm1, PublicIp] }
+    value: { get_attr: [user_vm1, addresses] }
+  user_vm2_ip:
+    description: The IP address of the deployed instance
+    value: { get_attr: [user_vm2, addresses] }
+  routed_mb_ip:
+    description: The IP address of the routed middlebox
+    value: { get_attr: [routed_mb, addresses] }
+  trans_mb_ip:
+    description: The IP address of the transparent middlebox
+    value: { get_attr: [trans_mb, addresses] }
