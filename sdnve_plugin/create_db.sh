@@ -1,3 +1,4 @@
+#!/bin/sh
 mysql -uroot
 show databases;
 create database sdnve_neutron;

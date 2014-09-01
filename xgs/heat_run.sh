@@ -7,6 +7,11 @@
 [ ! -e header.sh ] && echo_r "Not found header file" && exit -1
 . ./header.sh
 
+#Check prerequsite
+[ -z `which heatgen 2>/dev/null` ] && echo "Please install heatgen first" &&
+exit
+cp ./br-mv-port /usr/local/bin/ && chmod a+x /usr/local/bin/br-mv-port
+
 echo_b ">>>Starting the IPSaaS initialization..."
 
 echo_b "Checking tenant ${TENANT_NAME}"
@@ -34,7 +39,8 @@ IMG_ROUTED_ID=`glance image-list|grep "${IMG_ROUTED_NAME}"|awk '{print $2}'`
 
 echo_b "Creating new flavors..."
 #[ -z "`nova flavor-list|grep ex.small`" ] && nova flavor-create --is-public true ex.small 11 512 20 1
-[ -z "`nova flavor-list|grep ex.tiny`" ] &&nova flavor-create --is-public true ex.tiny 10 512 2 1
+[ -z "`nova flavor-list|grep ex.tiny`" ] && nova flavor-create --is-public
+true ex.tiny 10 512 2 1
 [ -z "`nova flavor-list|grep ex.xgs`" ] && nova flavor-create --is-public true ex.xgs 20 1024 10 1
 
 #change to user and add security rules
