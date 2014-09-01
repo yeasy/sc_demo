@@ -52,10 +52,17 @@ STACK="test_stack"
 echo_b "Starting the stack at az1 using Heat..."
 
 if [ -n "`heat stack-list|grep \"${STACK}\"`" ]; then 
-    heat stack-update $STACK -f ./xgs_template.yaml --parameters="user_image_1=${IMG_USER_ID1};user_image_2=${IMG_USER_ID2};xgs_image=${IMG_XGS_ID};routed_image=${IMG_ROUTED_ID};user_flavor=ex.tiny"
+    heat stack-update $STACK -f ./xgs_setup.yaml --parameters="user_image_1=${IMG_USER_ID1};user_image_2=${IMG_USER_ID2};xgs_image=${IMG_XGS_ID};routed_image=${IMG_ROUTED_ID};user_flavor=ex.tiny"
 else
-    heat stack-create $STACK -f ./xgs_template.yaml --parameters="user_image_1=${IMG_USER_ID1};user_image_2=${IMG_USER_ID2};xgs_image=${IMG_XGS_ID};routed_image=${IMG_ROUTED_ID};user_flavor=ex.tiny"
+    heat stack-create $STACK -f ./xgs_setup.yaml --parameters="user_image_1=${IMG_USER_ID1};user_image_2=${IMG_USER_ID2};xgs_image=${IMG_XGS_ID};routed_image=${IMG_ROUTED_ID};user_flavor=ex.tiny"
 fi
+
+[ -d /usr/lib/heat ] || mkdir /usr/lib/heat
+
+echo_b "Check if the service_policy resource exists in system"
+[ ! -f /usr/lib/heat/service_policy.py ] && cp ./service_policy.py /usr/lib/heat/ && service openstack-heat-engine restart
+
+
 unset OS_TENANT_NAME
 unset OS_USERNAME
 unset OS_PASSWORD

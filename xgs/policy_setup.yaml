@@ -1,0 +1,29 @@
+# This is a XGS demo HOT template just defining  a service policy
+heat_template_version: 2013-05-23
+
+description: >
+  HOT template that just defines a service policy.
+  Contains middleboxes to verify base demo.
+
+parameters:
+  policy_src:
+    type: string
+    description: Source net of the policy
+    default: net_int1
+  policy_dst:
+    type: string
+    description: Destination net of the policy
+    default: net_int2
+
+resources:
+#Policy
+  service_policy:
+    type: OS::Neutron::ServicePolicy
+    properties:
+      name: service_policy
+      src: {get_param: policy_src}
+      dst: {get_param: policy_dst}
+outputs:
+  policy_name:
+    description: The Name of the policy
+    value: { get_attr: [service_policy, name] }
