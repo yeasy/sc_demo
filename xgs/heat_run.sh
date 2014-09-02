@@ -10,18 +10,19 @@
 #Check prerequsite
 [ -z `which heatgen 2>/dev/null` ] && echo "Please install heatgen first" &&
 exit
-cp ./br-mv-port /usr/local/bin/ && chmod a+x /usr/local/bin/br-mv-port
+[ -z `which br-mv-port 2>/dev/null` ] && cp ./br-mv-port /usr/local/bin/ &&
+chmod a+x /usr/local/bin/br-mv-port
 
 echo_b ">>>Starting the IPSaaS initialization..."
 
-echo_b "Checking tenant ${TENANT_NAME}"
+echo_b ">>Checking tenant ${TENANT_NAME}"
 create_tenant "$TENANT_NAME" "$TENANT_DESC"
 TENANT_ID=$(get_tenantid_by_name "$TENANT_NAME") && echo_g "tenant id = ${TENANT_ID}"
 
-echo_b "Checking user..."
+echo_b ">>Checking user..."
 create_user "${USER_NAME}" "${USER_PWD}" "${TENANT_ID}" "${USER_EMAIL}"
 
-echo_b "Adding the user_vm, xgs, xgs_inited image file into glance..."
+echo_b ">>Checking the user_vm, xgs, xgs_inited image file in Glance..."
 create_image "${IMG_USER_NAME1}" "${IMG_USER_FILE}"
 create_image "${IMG_USER_NAME2}" "${IMG_USER_FILE}"
 [ -z "`glance image-list|grep \"${IMG_XGS_NAME}\"`" ] && create_image "${IMG_XGS_NAME}" "${IMG_XGS_FILE}" && \
@@ -37,10 +38,9 @@ IMG_XGS_ID=`glance image-list|grep "${IMG_XGS_NAME}"|awk '{print $2}'`
 IMG_ROUTED_ID=`glance image-list|grep "${IMG_ROUTED_NAME}"|awk '{print $2}'`
 [ -z "${IMG_ROUTED_ID}" ] && echo_r "image ${IMG_ROUTED_NAME} is not found in glance" && exit -1
 
-echo_b "Creating new flavors..."
+echo_b ">>Checking flavors..."
 #[ -z "`nova flavor-list|grep ex.small`" ] && nova flavor-create --is-public true ex.small 11 512 20 1
-[ -z "`nova flavor-list|grep ex.tiny`" ] && nova flavor-create --is-public
-true ex.tiny 10 512 2 1
+[ -z "`nova flavor-list|grep ex.tiny`" ] && nova flavor-create --is-public true ex.tiny 10 512 2 1
 [ -z "`nova flavor-list|grep ex.xgs`" ] && nova flavor-create --is-public true ex.xgs 20 1024 10 1
 
 #change to user and add security rules
@@ -54,20 +54,45 @@ export OS_PASSWORD=${USER_PWD}
 #nova secgroup-add-rule default tcp 80 80 0.0.0.0/0
 #nova secgroup-add-rule default tcp 443 443 0.0.0.0/0
 
-STACK="test_stack"
-echo_b "Starting the stack at az1 using Heat..."
+function xgs_setup {
+	STACK="xgs_stack"
+	echo_b ">>Starting the stack $STACK at az1 using Heat..."
+	PARAMS="user_image_1=${IMG_USER_ID1};user_image_2=${IMG_USER_ID2};xgs_image=${IMG_XGS_ID};routed_image=${IMG_ROUTED_ID};user_flavor=ex.tiny"
+	if [ -n "`heat stack-list|grep \"${STACK}\"`" ]; then
+		echo_g "Update existing stack ${STACK}"
+		heat stack-update $STACK -f ./xgs_setup.yaml --parameters="${PARAMS}"
+	else
+		echo_g "Create stack ${STACK}"
+		heat stack-create $STACK -f ./xgs_setup.yaml --parameters="${PARAMS}"
+	fi
+}
 
-if [ -n "`heat stack-list|grep \"${STACK}\"`" ]; then 
-    heat stack-update $STACK -f ./xgs_setup.yaml --parameters="user_image_1=${IMG_USER_ID1};user_image_2=${IMG_USER_ID2};xgs_image=${IMG_XGS_ID};routed_image=${IMG_ROUTED_ID};user_flavor=ex.tiny"
-else
-    heat stack-create $STACK -f ./xgs_setup.yaml --parameters="user_image_1=${IMG_USER_ID1};user_image_2=${IMG_USER_ID2};xgs_image=${IMG_XGS_ID};routed_image=${IMG_ROUTED_ID};user_flavor=ex.tiny"
-fi
+function policy_setup {
+	STACK="policy_stack"
+	dst_file=/usr/lib/heat/service_policy.py
+	echo_b ">>Starting the stack $STACK using Heat..."
+	[ -d /usr/lib/heat ] || mkdir /usr/lib/heat
 
-[ -d /usr/lib/heat ] || mkdir /usr/lib/heat
+	echo_g ">>Check if the ServicePolicy resource exists in system"
+	if [ ! -f ${dst_file} ] || ! cmp -s service_policy.py ${dst_file};  then
+		echo_g ">>Update the service_policy resource"
+		cp ./service_policy.py /usr/lib/heat/
+		service openstack-heat-engine restart
+		sleep 1
+	fi
 
-echo_b "Check if the service_policy resource exists in system"
-[ ! -f /usr/lib/heat/service_policy.py ] && cp ./service_policy.py /usr/lib/heat/ && service openstack-heat-engine restart
+	PARAMS="src=net_int1;dst=net_int2;services=[trans_mb,routed_mb]"
+	if [ -n "`heat stack-list|grep \"${STACK}\"`" ]; then
+		echo_g ">>Update existing stack ${STACK}"
+		heat stack-update $STACK -f ./policy_setup.yaml --parameters="${PARAMS}"
+	else
+		echo_g ">>Create stack ${STACK}"
+		heat stack-create $STACK -f ./policy_setup.yaml --parameters="${PARAMS}"
+	fi
+}
 
+#xgs_setup
+policy_setup
 
 unset OS_TENANT_NAME
 unset OS_USERNAME

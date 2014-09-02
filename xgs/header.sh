@@ -1,3 +1,4 @@
+#!/bin/sh
 #The header file that will be included by other scripts.
 ## THOSE VARIABLES CAN BE CUSTOMIZED. ##
 
