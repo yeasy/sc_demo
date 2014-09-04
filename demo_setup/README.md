@@ -6,6 +6,7 @@ policy into the project.
 
 
 #Prerequisite
+* [OpenStack] (http://openstack.org) Grizzly version
 * [heatgen](https://github.com/yeasy/heatgen)
 
 #Setup the project

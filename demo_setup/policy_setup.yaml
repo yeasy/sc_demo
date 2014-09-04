@@ -12,6 +12,10 @@ description: >
 #    admin-username
 
 parameters:
+  name:
+    type: string
+    description: Name of the generate policy
+    default: p_trans_routed
   compute_node:
     type: string
     description: IP of the compute node
@@ -24,13 +28,13 @@ parameters:
     #type: boolean #boolean is not supported in G
     type: string
     description: Whether to generate policy in both directions
-    default: false
+    default: F
   deploy:
     #type: boolean #boolean is not supported in G
     type: string
     description: Whether to deploy the generated policy
     #YAML will load any format of y/n, true/false, on/off, yes/no as boolean!
-    default: "False"
+    default: F
   src:
     type: string
     description: Source net name of the policy
@@ -39,15 +43,10 @@ parameters:
     type: string
     description: Destination net name of the policy
     default: net_int2
-  deploy:
-    #type: boolean #boolean is not supported in G
-    type: string
-    description: Whether to deploy the generated policy
-    default: false
   services:
     type: comma_delimited_list
     description: Middleboxes in the policy
-    default: [ trans_mb,routed_mb ]
+    default: [trans_mb, routed_mb]
   admin-auth_url:
     type: string
     description: authentication url for admin role
@@ -142,7 +141,7 @@ resources:
       egress_ip: {get_param: trans_mb-egress_ip}
   routed_mb:
     type: OS::Neutron::RoutedMiddlebox
-    #depends_on: trans_mb
+    depends_on: trans_mb
     properties:
       name: routed_mb
       type: {get_param: routed_mb-type}
@@ -153,9 +152,9 @@ resources:
 #Policy
   service_policy:
     type: OS::Neutron::ServicePolicy
-    #depends_on: trans_mb, routed_mb
+    depends_on: [trans_mb, routed_mb]
     properties:
-      name: service_policy
+      name: {get_param: name}
       src: {get_param: src}
       dst: {get_param: dst}
       services: {get_param: services}

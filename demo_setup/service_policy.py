@@ -5,6 +5,8 @@
 
 #Provide the OS::Neutron::ServicePolicy resource.
 
+from subprocess import Popen, PIPE
+
 from heat.engine import attributes
 from heat.engine import properties
 from heat.engine import resource
@@ -12,7 +14,7 @@ from heat.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 
-TMP_CONF = 'temp_config.conf'
+TMP_CONF = '/tmp/temp_config.conf'
 
 class TransMiddlebox(resource.Resource):
 
@@ -256,6 +258,8 @@ class ServicePolicy(resource.Resource):
         ),
     }
 
+    default_client_name = 'neutron'
+
     def handle_create(self):
         name = self.properties.get(self.NAME)
         src = self.properties.get(self.SRC)
@@ -277,20 +281,26 @@ class ServicePolicy(resource.Resource):
         LOG.info('name=%s, src=%s, dst=%s, services=%s, bidirectional=%s, '
                  'deploy=%s, compute_node=%s, '
                  'sdn_controller=%s, admin=%s,%s:%s:%s, project=%s,%s:%s:%s'
-        % (name, src, dst, ','.join(services), bidirectional,
-           deploy, compute_node, sdn_controller, admin_auth_url,
-           admin_username, admin_password, admin_tenant_name,
-           project_auth_url, project_username, project_password, project_tenant_name))
+        % (name, src, dst, ','.join([e.strip('[]') for e in services]), 'True' if
+        bidirectional else 'False', 'True' if deploy else 'False',
+           compute_node, sdn_controller, admin_auth_url, admin_username,
+           admin_password, admin_tenant_name, project_auth_url,
+           project_username, project_password, project_tenant_name))
+        LOG.info('Write temp conf file into %s' %TMP_CONF)
         with open(TMP_CONF, 'a') as f:
             f.write('[DEFAULT]\n')
             f.write('src = %s\n' % src)
             f.write('dst = %s\n' % dst)
-            f.write('services = %s\n' % ','.join(services))
+            f.write('services = %s\n' % ','.join([e.strip('[]') for e in services]))
             f.write('policy_name = %s\n' % name)
-            f.write('bidirectional = %s\n' %
-                    bidirectional[0].upper()+bidirectional[1:])
-            f.write('deploy = %s\n' %
-                    deploy[0].upper()+deploy[1:])
+            if bidirectional.upper().startswith('F'):
+                f.write('bidirectional = False\n')
+            else:
+                f.write('bidirectional = True\n')
+            if deploy.upper().startswith('F'):
+                f.write('deploy = False\n')
+            else:
+                f.write('deploy = True\n')
             f.write('compute_node = %s\n' % compute_node)
             f.write('sdn_controller = %s\n' % sdn_controller)
             f.write('\n')
@@ -306,6 +316,13 @@ class ServicePolicy(resource.Resource):
             f.write('password = %s\n' % project_password)
             f.write('tenant_name = %s\n' % project_tenant_name)
             f.write('\n')
+        cmd = 'heatgen --config-file %s' %(TMP_CONF)
+        result, error = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
+        if error:
+            LOG.error('Failed to call cmd %s, error_msg=%s' % (cmd,error))
+        else:
+            LOG.info('cmd %s output is %s' % (cmd, result))
+
 
     def handle_delete(self):
         LOG.info('service_policy: handle_delete() is called')
