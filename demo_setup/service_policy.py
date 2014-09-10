@@ -280,7 +280,8 @@ class ServicePolicy(resource.Resource):
         LOG.info('service_policy: handle_create() is called')
         LOG.info('name=%s, src=%s, dst=%s, services=%s, bidirectional=%s, '
                  'deploy=%s, compute_node=%s, '
-                 'sdn_controller=%s, admin=%s,%s:%s:%s, project=%s,%s:%s:%s'
+                 'sdn_controller=%s, admin(user,pwd,tenant)=%s,%s:%s:%s, '
+                 'project(user,pwd,tenant)=%s,%s:%s:%s'
         % (name, src, dst, ','.join([e.strip('[]') for e in services]), 'True' if
         bidirectional else 'False', 'True' if deploy else 'False',
            compute_node, sdn_controller, admin_auth_url, admin_username,
@@ -317,11 +318,16 @@ class ServicePolicy(resource.Resource):
             f.write('tenant_name = %s\n' % project_tenant_name)
             f.write('\n')
         cmd = 'heatgen --config-file %s' %(TMP_CONF)
-        result, error = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
-        if error:
-            LOG.error('Failed to call cmd %s, error_msg=%s' % (cmd,error))
-        else:
-            LOG.info('cmd %s output is %s' % (cmd, result))
+        import time
+        for i in range(10): #retry several times to test when all resources
+        # are OK
+            time.sleep(2)
+            result, error = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
+            if error:
+                LOG.error('Failed to call cmd %s, error_msg=%s' % (cmd, error))
+            else:
+                LOG.info('cmd %s output is %s' % (cmd, result))
+                break
 
 
     def handle_delete(self):

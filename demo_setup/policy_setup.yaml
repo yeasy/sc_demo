@@ -129,9 +129,16 @@ parameters:
       - allowed_values: [firewall, ips]
 
 resources:
+#xgs base stack
+  xgs_base:
+    type: SDE::XGS::BaseStack
+    properties:
+      user_image_1: user_vm1
+      user_image_2: user_vm2
 #trans middlebox
   trans_mb:
     type: OS::Neutron::TransMiddlebox
+    depends_on: xgs_base
     properties:
       name: trans_mb
       type: {get_param: trans_mb-type}
@@ -141,7 +148,7 @@ resources:
       egress_ip: {get_param: trans_mb-egress_ip}
   routed_mb:
     type: OS::Neutron::RoutedMiddlebox
-    depends_on: trans_mb
+    depends_on: [xgs_base,trans_mb]
     properties:
       name: routed_mb
       type: {get_param: routed_mb-type}

@@ -84,10 +84,11 @@ function policy_setup {
 	PARAMS="src=net_int1;dst=net_int2;services=[trans_mb,routed_mb]"
 	if [ -n "`heat stack-list|grep \"${STACK}\"`" ]; then
 		echo_g ">>Update existing stack ${STACK}"
-		heat stack-update $STACK -f ./policy_setup.yaml --parameters="${PARAMS}"
+		heat stack-update $STACK -e env.yaml -P="${PARAMS}" -f ./policy_setup
+		.yaml
 	else
 		echo_g ">>Create stack ${STACK}"
-		heat stack-create $STACK -f ./policy_setup.yaml --parameters="${PARAMS}"
+		heat stack-create $STACK -e env.yaml -P="${PARAMS}" -f ./policy_setup.yaml
 	fi
 }
 
