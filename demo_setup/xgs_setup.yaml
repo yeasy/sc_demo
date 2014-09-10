@@ -155,7 +155,7 @@ resources:
             param1: test
   xgs_mb:
     type: OS::Nova::Server
-    depends_on: [ user_vm1, user_vm2 ]
+    depends_on: [user_vm1, user_vm2]
     properties:
       name: xgs_mb
       image: { get_param: xgs_image }
@@ -165,7 +165,7 @@ resources:
       security_groups: [{ get_resource: the_sg }]
   routed_mb:
     type: OS::Nova::Server
-    depends_on: [ user_vm1, user_vm2 ]
+    depends_on: [user_vm1, user_vm2, xgs_mb]
     properties:
       name: routed_mb
       image: { get_param: routed_image }
