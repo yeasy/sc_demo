@@ -240,3 +240,14 @@ delete_tenant () {
         keystone tenant-delete ${ID}
     fi
 }
+
+#stack_name
+delete_stack () {
+    [ $# -ne 1 ] && echo "Wrong parameter number is given: $#" && exit -1
+    local NAME=$1
+    if [ -n "`heat stack-list|grep \"${NAME}\"`" ]; then
+        local ID=`heat stack-list|grep "${NAME}"|awk '{print $2}'`
+        heat stack-delete ${ID}
+        #sleep 2;
+    fi
+}

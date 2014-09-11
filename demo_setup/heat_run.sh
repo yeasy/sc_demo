@@ -54,8 +54,9 @@ export OS_PASSWORD=${USER_PWD}
 #nova secgroup-add-rule default tcp 80 80 0.0.0.0/0
 #nova secgroup-add-rule default tcp 443 443 0.0.0.0/0
 
+#deprecated
 function xgs_setup {
-	STACK="xgs_stack"
+	STACK="xgs_base"
 	echo_b ">>Starting the stack $STACK at az1 using Heat..."
 	PARAMS="user_image_1=${IMG_USER_ID1};user_image_2=${IMG_USER_ID2};xgs_image=${IMG_XGS_ID};routed_image=${IMG_ROUTED_ID};user_flavor=ex.tiny"
 	if [ -n "`heat stack-list|grep \"${STACK}\"`" ]; then
@@ -67,8 +68,12 @@ function xgs_setup {
 	fi
 }
 
-function policy_setup {
-	STACK="policy_stack"
+function demo_setup {
+	STACK="xgs_demo"
+	echo_b ">>Cleaning existed $STACK using Heat..."
+	delete_stack "$STACK"
+	sleep 8
+
 	dst_file=/usr/lib/heat/service_policy.py
 	echo_b ">>Starting the stack $STACK using Heat..."
 	[ -d /usr/lib/heat ] || mkdir /usr/lib/heat
@@ -84,16 +89,21 @@ function policy_setup {
 	PARAMS="src=net_int1;dst=net_int2;services=[trans_mb,routed_mb]"
 	if [ -n "`heat stack-list|grep \"${STACK}\"`" ]; then
 		echo_g ">>Update existing stack ${STACK}"
-		heat stack-update $STACK -e env.yaml -P="${PARAMS}" -f ./policy_setup
-		.yaml
+		heat stack-update $STACK -e env.yaml -P="${PARAMS}" -f ./template_demo.yaml
 	else
 		echo_g ">>Create stack ${STACK}"
-		heat stack-create $STACK -e env.yaml -P="${PARAMS}" -f ./policy_setup.yaml
+		heat stack-create $STACK -e env.yaml -P="${PARAMS}" -f ./template_demo.yaml
 	fi
+	#sleep 60
+	#heat stack-delete $STACK
 }
 
 #xgs_setup
-policy_setup
+demo_setup
+AGENT=agent.py
+ps aux |grep "$AGENT" |grep -v "grep"| awk '{print $2}'|xargs kill -9 2>&1 &
+sleep 1
+python $AGENT 2>&1 &
 
 unset OS_TENANT_NAME
 unset OS_USERNAME

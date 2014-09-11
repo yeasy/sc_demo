@@ -5,6 +5,10 @@
 
 #Provide the OS::Neutron::ServicePolicy resource.
 
+import subprocess,os,shlex,signal
+
+from eventlet import greenthread
+
 from subprocess import Popen, PIPE
 
 from heat.engine import attributes
@@ -15,6 +19,68 @@ from heat.openstack.common import log as logging
 LOG = logging.getLogger(__name__)
 
 TMP_CONF = '/tmp/temp_config.conf'
+
+def _subprocess_setup():
+    # Python installs a SIGPIPE handler by default. This is usually not what
+    # non-Python subprocesses expect.
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+def subprocess_popen(args, stdin=None, stdout=None, stderr=None, shell=False,
+                     env=None):
+    return subprocess.Popen(args, shell=shell, stdin=stdin, stdout=stdout,
+                            stderr=stderr, preexec_fn=_subprocess_setup,
+                            close_fds=True, env=env)
+
+def create_process(cmd, root_helper=None, addl_env=None):
+    """Create a process object for the given command.
+
+    The return value will be a tuple of the process object and the
+    list of command arguments used to create it.
+    """
+    if root_helper:
+        cmd = shlex.split(root_helper) + cmd
+    cmd = map(str, cmd)
+
+    env = os.environ.copy()
+    if addl_env:
+        env.update(addl_env)
+
+    obj = subprocess_popen(cmd, shell=False,
+                                 stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 env=env)
+
+    return obj, cmd
+
+
+def execute(cmd, root_helper=None, process_input=None, addl_env=None,
+            check_exit_code=True, return_stderr=False, log_fail_as_error=True):
+    try:
+        obj, cmd = create_process(cmd, root_helper=root_helper,
+                                  addl_env=addl_env)
+        _stdout, _stderr = (process_input and
+                            obj.communicate(process_input) or
+                            obj.communicate())
+        obj.stdin.close()
+        m = _("\nCommand: %(cmd)s\nExit code: %(code)s\nStdout: %(stdout)r\n"
+              "Stderr: %(stderr)r") % {'cmd': cmd, 'code': obj.returncode,
+                                       'stdout': _stdout, 'stderr': _stderr}
+
+        if obj.returncode and log_fail_as_error:
+            LOG.error(m)
+        else:
+            LOG.debug(m)
+
+        if obj.returncode and check_exit_code:
+            raise RuntimeError(m)
+    finally:
+        # NOTE(termie): this appears to be necessary to let the subprocess
+        #               call clean something up in between calls, without
+        #               it two execute calls in a row hangs the second one
+        greenthread.sleep(0)
+
+    return return_stderr and (_stdout, _stderr) or _stdout
 
 class TransMiddlebox(resource.Resource):
 
@@ -317,17 +383,19 @@ class ServicePolicy(resource.Resource):
             f.write('password = %s\n' % project_password)
             f.write('tenant_name = %s\n' % project_tenant_name)
             f.write('\n')
-        cmd = 'heatgen --config-file %s' %(TMP_CONF)
-        import time
-        for i in range(10): #retry several times to test when all resources
-        # are OK
-            time.sleep(2)
-            result, error = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
-            if error:
-                LOG.error('Failed to call cmd %s, error_msg=%s' % (cmd, error))
-            else:
-                LOG.info('cmd %s output is %s' % (cmd, result))
-                break
+        with open('/tmp/heatgen_trigger', 'w') as f:
+            f.write('1\n')
+            cmd = 'heatgen --config-file %s' %(TMP_CONF)
+            f.write(cmd)
+        # We cannot call heatgen in daemonlized prog as heatgen call popen(ssh)!
+        #cmd = 'heatgen --config-file %s' %(TMP_CONF)
+        #result, error = Popen(cmd, stdout=PIPE, stderr=PIPE,
+        # shell=True).communicate()
+        #if error:
+        #    LOG.error('Tries %d, failed to call cmd %s, error_msg=%s\n' % (
+        #        i, cmd, error))
+        #else:
+        #    LOG.info('cmd %s output is %s\n' % (cmd, result))
 
 
     def handle_delete(self):
