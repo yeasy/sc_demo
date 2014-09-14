@@ -10,8 +10,8 @@ def run_cmd(cmd):
     #cmd = 'heatgen --config-file %s' %(TMP_CONF)
 
     result, error = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True).communicate()
-    #print 'result=',result
-    #print 'error=',error
+    print 'result=',result
+    print 'error=',error
 
 if __name__ == "__main__":
     for i in range(1000):

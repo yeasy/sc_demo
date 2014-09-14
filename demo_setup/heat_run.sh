@@ -48,11 +48,19 @@ export OS_TENANT_NAME=${TENANT_NAME}
 export OS_USERNAME=${USER_NAME}
 export OS_PASSWORD=${USER_PWD}
 
-#echo_b "Add default secgroup rules of allowing ping and ssh..."
-#nova secgroup-add-rule default icmp -1 -1 0.0.0.0/0
-#nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
-#nova secgroup-add-rule default tcp 80 80 0.0.0.0/0
-#nova secgroup-add-rule default tcp 443 443 0.0.0.0/0
+echo_b "Add default secgroup rules of allowing ping and ssh..."
+nova secgroup-add-rule default icmp -1 -1 0.0.0.0/0
+nova secgroup-add-rule default tcp 22 22 0.0.0.0/0
+nova secgroup-add-rule default tcp 80 80 0.0.0.0/0
+nova secgroup-add-rule default tcp 443 443 0.0.0.0/0
+
+#pushd /var/lib/heat
+#[ ! -e .ssh ] && mkdir .ssh && ln -s /root/.ssh/id_rsa id_rsa
+#pushd .ssh
+#[ ! -e id_rsa ] && ln -s /root/.ssh/id_rsa id_rsa
+#popd
+#popd
+#chown -R heat:heat /var/lib/heat
 
 #deprecated
 function xgs_setup {
@@ -72,7 +80,7 @@ function demo_setup {
 	STACK="xgs_demo"
 	echo_b ">>Cleaning existed $STACK using Heat..."
 	delete_stack "$STACK"
-	sleep 8
+	sleep 15
 
 	dst_file=/usr/lib/heat/service_policy.py
 	echo_b ">>Starting the stack $STACK using Heat..."
@@ -103,7 +111,7 @@ demo_setup
 AGENT=agent.py
 ps aux |grep "$AGENT" |grep -v "grep"| awk '{print $2}'|xargs kill -9 2>&1 &
 sleep 1
-python $AGENT 2>&1 &
+python $AGENT 2>&1 >/tmp/heatgen_agent.log &
 
 unset OS_TENANT_NAME
 unset OS_USERNAME

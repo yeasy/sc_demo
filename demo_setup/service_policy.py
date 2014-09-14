@@ -383,19 +383,21 @@ class ServicePolicy(resource.Resource):
             f.write('password = %s\n' % project_password)
             f.write('tenant_name = %s\n' % project_tenant_name)
             f.write('\n')
+        cmd = 'heatgen --config-file %s' %(TMP_CONF)
         with open('/tmp/heatgen_trigger', 'w') as f:
-            f.write('1\n')
-            cmd = 'heatgen --config-file %s' %(TMP_CONF)
-            f.write(cmd)
+            LOG.info('Write heatgen trigger file into /tmp/heatgen_trigger')
+            f.write('1\n%s' % cmd)
         # We cannot call heatgen in daemonlized prog as heatgen call popen(ssh)!
-        #cmd = 'heatgen --config-file %s' %(TMP_CONF)
-        #result, error = Popen(cmd, stdout=PIPE, stderr=PIPE,
-        # shell=True).communicate()
-        #if error:
-        #    LOG.error('Tries %d, failed to call cmd %s, error_msg=%s\n' % (
-        #        i, cmd, error))
-        #else:
-        #    LOG.info('cmd %s output is %s\n' % (cmd, result))
+        #for i in range(5):
+        #    from time import sleep
+        #    sleep(3)
+        #    result, error = Popen(cmd, stdout=PIPE, stderr=PIPE,
+        #     shell=True).communicate()
+        #    if error:
+        #        LOG.error('Tries %d, failed to call cmd %s, error_msg=%s\n' % (
+        #            i, cmd, error))
+        #    else:
+        #        LOG.info('cmd %s output is %s\n' % (cmd, result))
 
 
     def handle_delete(self):
