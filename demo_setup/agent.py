@@ -9,10 +9,15 @@ import time
 from subprocess import Popen, PIPE
 
 
+def get_time():
+    time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+
+
 def run_cmd(cmd):
     #TMP_CONF = '/tmp/temp_config.conf'
     #cmd = 'heatgen --config-file %s' %(TMP_CONF)
 
+    print '[%s]run cmd=%s' % (get_time(), cmd)
     result, error = Popen(cmd, stdout=PIPE, stderr=PIPE,
                           shell=True).communicate()
     print 'result=', result
@@ -26,9 +31,11 @@ if __name__ == "__main__":
         try:
             with open('/tmp/heatgen_trigger', 'r') as f:
                 s = f.readline()
+                print "[%s]get firstline=%s from trigger file" % (get_time(), s)
                 if s.startswith('1'):
                     cmd = f.readline()
-                    #print "run %s" %cmd
+                    print "[%s]get cmd=%s from trigger file" % (get_time(), cmd)
+                    time.sleep(5)
                     run_cmd(cmd)
             if s.startswith('1'):
                 with open('/tmp/heatgen_trigger', 'w') as f:
