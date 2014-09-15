@@ -94,7 +94,7 @@ function demo_setup {
 		sleep 1
 	fi
 
-	PARAMS="src=net_int1;dst=net_int2;services=[trans_mb,routed_mb];deploy=T"
+	PARAMS="src=net_int1;dst=net_int2;services=[trans_mb,routed_mb];bidirectional=T;deploy=T"
 	if [ -n "`heat stack-list|grep \"${STACK}\"`" ]; then
 		echo_g ">>Update existing stack ${STACK}"
 		heat stack-update $STACK -e env.yaml -P="${PARAMS}" -f ./template_demo.yaml
@@ -112,7 +112,8 @@ AGENT=agent.py
 ps aux |grep "$AGENT" |grep -v "grep"| awk '{print $2}'|xargs kill -9 2>&1 >/dev/null &
 sleep 1
 [ ! -e /tmp/heatgen_agent.log ] && touch /tmp/heatgen_agent.log
-python $AGENT 2>&1 >>/tmp/heatgen_agent.log &
+#log will be ouput into  /tmp/heatgen_agent.log
+python $AGENT >/dev/null 2>&1 &
 
 unset OS_TENANT_NAME
 unset OS_USERNAME
