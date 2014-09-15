@@ -2,7 +2,7 @@
 #
 # All Rights Reserved.
 #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
 #
@@ -21,8 +21,6 @@ import socket
 import time
 
 import eventlet
-eventlet.monkey_patch()
-
 from oslo.config import cfg
 
 from neutron.agent.linux import ip_lib
@@ -45,7 +43,6 @@ LOG = logging.getLogger(__name__)
 
 
 class SdnvePluginApi(agent_rpc.PluginApi):
-
     def sdnve_info(self, context, info):
         return self.call(context,
                          self.make_msg('sdnve_info', info=info),
@@ -53,7 +50,6 @@ class SdnvePluginApi(agent_rpc.PluginApi):
 
 
 class SdnveNeutronAgent():
-
     RPC_API_VERSION = '1.1'
 
     def __init__(self, integ_br, interface_mappings,
@@ -235,7 +231,6 @@ class SdnveNeutronAgent():
 
 
 def create_agent_config_map(config):
-
     interface_mappings = n_utils.parse_mappings(
         config.SDNVE.interface_mappings)
 
@@ -255,6 +250,7 @@ def create_agent_config_map(config):
 
 
 def main():
+    eventlet.monkey_patch()
     cfg.CONF.register_opts(ip_lib.OPTS)
     cfg.CONF(project='neutron')
     logging_config.setup_logging(cfg.CONF)

@@ -2,7 +2,7 @@
 #
 # All Rights Reserved.
 #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
 #
@@ -49,7 +49,7 @@ sdnve_opts = [
     cfg.ListOpt('interface_mappings',
                 default=DEFAULT_INTERFACE_MAPPINGS,
                 help=_("List of <physical_network_name>:<interface_name>")),
-    cfg.StrOpt('default_tenant_type', default='OVERLAY',
+    cfg.StrOpt('default_tenant_type', default='OF',
                help=_("Tenant type: OF (default) and OVERLAY")),
     cfg.StrOpt('overlay_signature', default='SDNVE-OVERLAY',
                help=_("The string in tenant description that indicates "
@@ -68,7 +68,6 @@ sdnve_agent_opts = [
                 help=_("Whether using rpc")),
 
 ]
-
 
 cfg.CONF.register_opts(sdnve_opts, "SDNVE")
 cfg.CONF.register_opts(sdnve_agent_opts, "SDNVE_AGENT")

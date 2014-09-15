@@ -2,7 +2,7 @@
 #
 # All Rights Reserved.
 #
-#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
 #
@@ -162,10 +162,10 @@ class RequestHandler(object):
 
             try:
                 LOG.info(_("Sending request to SDN-VE. url: "
-                            "%(myurl)s method: %(method)s body: "
-                            "%(body)s header: %(header)s "),
-                          {'myurl': myurl, 'method': method,
-                           'body': body, 'header': self.headers})
+                           "%(myurl)s method: %(method)s body: "
+                           "%(body)s header: %(header)s "),
+                         {'myurl': myurl, 'method': method,
+                          'body': body, 'header': self.headers})
                 resp, replybody = self.httpclient.request(
                     myurl, method=method, body=body, headers=self.headers)
                 LOG.debug(("Response recd from SDN-VE. resp: %(resp)s"
@@ -297,10 +297,10 @@ class Client(RequestHandler):
 
     def sdnve_get_service_tenant_id(self):
         tenants = self.keystoneclient.get_tenants()
-        LOG.info(_("%(tenants)s"),{"tenants":tenants})
+        LOG.info(_("%(tenants)s"), {"tenants": tenants})
         for tenant in tenants:
             if tenant.name == u"service":
-                LOG.info(_("service tenant is:%s"),tenant.id)
+                LOG.info(_("service tenant is:%s"), tenant.id)
                 return tenant.id
 
     def sdnve_check_and_create_tenant(self, os_tenant_id, network_type=None):
@@ -345,7 +345,6 @@ class Client(RequestHandler):
 
 
 class KeystoneClient(object):
-
     def __init__(self, username=None, tenant_name=None, password=None,
                  auth_url=None):
 
