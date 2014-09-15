@@ -1,40 +1,59 @@
 #!`which python`
+# -*- coding: utf8 -*-
 # This agent watch /tmp/heatgen_trigger, and run the inside command to call
 # heatgen. This is a temporary solution as in heat-engine, it cannot access
 # the ssh id file of root, and cannot get port information from the computer
 # node.
 
+import logging
+import logging.handlers
 import sys
 import time
 from subprocess import Popen, PIPE
 
 
-def get_time():
-    time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+LOG_FILE = '/tmp/heatgen_agent.log'
+handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=1024 * 1024,
+                                               backupCount=5)  # handler
 
+fmt = '[%(asctime)s][%(name)s][%(levelname)s] %(filename)s:%(lineno)s - %(' \
+      'message)s'
+handler.setFormatter(logging.Formatter(fmt))  # add formatter to handler
+
+logger = logging.getLogger('heatgen_agent')  # get logger
+logger.addHandler(handler)  # add handler to logger
+logger.setLevel(logging.DEBUG)
+
+
+# deprecated
+def get_time():
+    return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
 
 def run_cmd(cmd):
     #TMP_CONF = '/tmp/temp_config.conf'
     #cmd = 'heatgen --config-file %s' %(TMP_CONF)
 
-    print '[%s]run cmd=%s' % (get_time(), cmd)
+    logger.info('run cmd=%s' % (cmd))
     result, error = Popen(cmd, stdout=PIPE, stderr=PIPE,
                           shell=True).communicate()
-    print 'result=', result
-    print 'error=', error
-
+    if result:
+        logger.debug('popen result=%s' % result)
+    if error:
+        logger.debug('popen error=%s' % error)
 
 if __name__ == "__main__":
+    logger.info('agent started')
     for i in range(1000):
-        time.sleep(5)
+        sys.stdout.flush()
+        time.sleep(3)
         s = '0'
         try:
             with open('/tmp/heatgen_trigger', 'r') as f:
                 s = f.readline()
-                print "[%s]get firstline=%s from trigger file" % (get_time(), s)
+                logger.debug("from heatgen_trigger get headline=%s" % (s))
                 if s.startswith('1'):
                     cmd = f.readline()
-                    print "[%s]get cmd=%s from trigger file" % (get_time(), cmd)
+                    logger.debug("from heatgen_trigger get cmd=%s" % (cmd))
                     time.sleep(5)
                     run_cmd(cmd)
             if s.startswith('1'):
@@ -58,5 +77,3 @@ if __name__ == "__main__":
 
     #print CONF.keys()
     #print CONF.values()
-
-
