@@ -346,8 +346,8 @@ class ServicePolicy(resource.Resource):
         LOG.info('service_policy: handle_create() is called')
         LOG.info('name=%s, src=%s, dst=%s, services=%s, bidirectional=%s, '
                  'deploy=%s, compute_node=%s, '
-                 'sdn_controller=%s, admin(user,pwd,tenant)=%s,%s:%s:%s, '
-                 'project(user,pwd,tenant)=%s,%s:%s:%s'
+                 'sdn_controller=%s, admin(url,user,pwd,tenant)=%s,%s:%s:%s, '
+                 'project(url,user,pwd,tenant)=%s,%s:%s:%s'
         % (name, src, dst, ','.join([e.strip('[]') for e in services]), 'True' if
         bidirectional else 'False', 'True' if deploy else 'False',
            compute_node, sdn_controller, admin_auth_url, admin_username,
@@ -385,7 +385,7 @@ class ServicePolicy(resource.Resource):
             f.write('\n')
         cmd = 'heatgen --config-file %s' %(TMP_CONF)
         with open('/tmp/heatgen_trigger', 'w') as f:
-            LOG.info('Write heatgen trigger file into /tmp/heatgen_trigger')
+            LOG.info('Write %s into /tmp/heatgen_trigger' % cmd)
             f.write('1\n%s' % cmd)
         # We cannot call heatgen in daemonlized prog as heatgen call popen(ssh)!
         #for i in range(5):

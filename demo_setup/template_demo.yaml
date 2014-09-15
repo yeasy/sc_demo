@@ -23,7 +23,7 @@ parameters:
   sdn_controller:
     type: string
     description: IP of the sdn controller
-    default: 9.186.105.154
+    default: 9.186.105.49
   bidirectional:
     #type: boolean #boolean is not supported in G
     type: string
