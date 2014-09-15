@@ -109,7 +109,7 @@ function demo_setup {
 #xgs_setup
 demo_setup
 AGENT=agent.py
-ps aux |grep "$AGENT" |grep -v "grep"| awk '{print $2}'|xargs kill -9 2>&1 &
+ps aux |grep "$AGENT" |grep -v "grep"| awk '{print $2}'|xargs kill -9 2>&1 >/dev/null &
 sleep 1
 [ ! -e /tmp/heatgen_agent.log ] && touch /tmp/heatgen_agent.log
 python $AGENT 2>&1 >>/tmp/heatgen_agent.log &
