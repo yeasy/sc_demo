@@ -55,7 +55,7 @@ nova secgroup-add-rule default tcp 80 80 0.0.0.0/0
 nova secgroup-add-rule default tcp 443 443 0.0.0.0/0
 
 #pushd /var/lib/heat
-#[ ! -e .ssh ] && mkdir .ssh && ln -s /root/.ssh/id_rsa id_rsa
+#[ ! -d .ssh ] && mkdir .ssh && ln -s /root/.ssh/id_rsa id_rsa
 #pushd .ssh
 #[ ! -e id_rsa ] && ln -s /root/.ssh/id_rsa id_rsa
 #popd
@@ -94,7 +94,7 @@ function demo_setup {
 		sleep 1
 	fi
 
-	PARAMS="src=net_int1;dst=net_int2;services=[trans_mb,routed_mb]"
+	PARAMS="src=net_int1;dst=net_int2;services=[trans_mb,routed_mb];deploy=T"
 	if [ -n "`heat stack-list|grep \"${STACK}\"`" ]; then
 		echo_g ">>Update existing stack ${STACK}"
 		heat stack-update $STACK -e env.yaml -P="${PARAMS}" -f ./template_demo.yaml
@@ -111,7 +111,8 @@ demo_setup
 AGENT=agent.py
 ps aux |grep "$AGENT" |grep -v "grep"| awk '{print $2}'|xargs kill -9 2>&1 &
 sleep 1
-python $AGENT 2>&1 >/tmp/heatgen_agent.log &
+[ ! -e /tmp/heatgen_agent.log ] && touch /tmp/heatgen_agent.log
+python $AGENT 2>&1 >>/tmp/heatgen_agent.log &
 
 unset OS_TENANT_NAME
 unset OS_USERNAME
