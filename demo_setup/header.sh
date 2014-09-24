@@ -248,6 +248,7 @@ delete_stack () {
     if [ -n "`heat stack-list|grep \"${NAME}\"`" ]; then
         local ID=`heat stack-list|grep "${NAME}"|awk '{print $2}'`
         heat stack-delete ${ID}
-        #sleep 2;
+        sleep 15;
+        echo "1"
     fi
 }

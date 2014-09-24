@@ -6,9 +6,9 @@ PLUGIN_DIR="sdnve-plugin-icehouse"
 
 
 EXEC="need_init_empty.sh"
-CONTROLS=("9.186.105.110")
+CONTROLS=("9.186.100.100")
 #COMPUTES=("9.186.105.49" "192.168.100.102")
-COMPUTES=("9.186.105.49")
+COMPUTES=("9.186.100.101")
 TMP_DIR=/tmp
 
 if [ $1 -eq 1 ]; then

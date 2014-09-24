@@ -79,8 +79,9 @@ function xgs_setup {
 function demo_setup {
 	STACK="xgs_demo"
 	echo_b ">>Cleaning existed $STACK using Heat..."
-	delete_stack "$STACK"
-	sleep 15
+	result=$(delete_stack "$STACK")
+	echo $result
+	[ -n "$result" ] && echo "$STACK existed, has deleted it" && sleep 5
 
 	dst_file=/usr/lib/heat/service_policy.py
 	echo_b ">>Starting the stack $STACK using Heat..."
@@ -94,7 +95,7 @@ function demo_setup {
 		sleep 1
 	fi
 
-	PARAMS="src=net_int1;dst=net_int2;services=[trans_mb,routed_mb];bidirectional=T;deploy=T"
+	PARAMS="src=net_int1;dst=net_int2;services=[trans_mb,routed_mb];bidirectional=T;deploy=F"
 	if [ -n "`heat stack-list|grep \"${STACK}\"`" ]; then
 		echo_g ">>Update existing stack ${STACK}"
 		heat stack-update $STACK -e env.yaml -P="${PARAMS}" -f ./template_demo.yaml
@@ -109,7 +110,7 @@ function demo_setup {
 #xgs_setup
 demo_setup
 AGENT=agent.py
-ps aux |grep "$AGENT" |grep -v "grep"| awk '{print $2}'|xargs kill -9 2>&1 >/dev/null &
+ps aux |grep "$AGENT" |grep -v "grep"|awk '{print $2}'|xargs kill -9 >/dev/null 2>&1 &
 sleep 1
 [ ! -e /tmp/heatgen_agent.log ] && touch /tmp/heatgen_agent.log
 #log will be ouput into  /tmp/heatgen_agent.log

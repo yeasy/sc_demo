@@ -332,7 +332,15 @@ class ServicePolicy(resource.Resource):
         dst = self.properties.get(self.DST)
         services = self.properties.get(self.SERVICES)
         bidirectional = self.properties.get(self.BIDIRECTIONAL)
+        if bidirectional.upper().startswith('T'):
+            bidirectional = True
+        else:
+            bidirectional=False
         deploy = self.properties.get(self.DEPLOY)
+        if deploy.upper().startswith('T'):
+            deploy = True
+        else:
+            deploy=False
         compute_node = self.properties.get(self.COMPUTE_NODE)
         sdn_controller = self.properties.get(self.SDN_CONTROLLER)
         admin_auth_url = self.properties.get(self.ADMIN_AUTH_URL)
@@ -360,14 +368,14 @@ class ServicePolicy(resource.Resource):
             f.write('dst = %s\n' % dst)
             f.write('services = %s\n' % ','.join([e.strip('[]') for e in services]))
             f.write('policy_name = %s\n' % name)
-            if bidirectional.upper().startswith('F'):
-                f.write('bidirectional = False\n')
-            else:
+            if bidirectional:
                 f.write('bidirectional = True\n')
-            if deploy.upper().startswith('F'):
-                f.write('deploy = False\n')
             else:
+                f.write('bidirectional = False\n')
+            if deploy:
                 f.write('deploy = True\n')
+            else:
+                f.write('deploy = False\n')
             f.write('compute_node = %s\n' % compute_node)
             f.write('sdn_controller = %s\n' % sdn_controller)
             f.write('\n')

@@ -138,7 +138,7 @@ resources:
       #security_groups: [{ get_resource: the_sg }]
   user_vm2:
     type: OS::Nova::Server
-    #depends_on: user_vm1
+    depends_on: user_vm1
     properties:
       name: user_vm2
       image: { get_param: user_image_2 }
@@ -155,12 +155,12 @@ resources:
             param1: test
   xgs_mb:
     type: OS::Nova::Server
-    #depends_on: [user_vm1, user_vm2]
+    depends_on: [user_vm1, user_vm2]
     properties:
       name: xgs_mb
       image: { get_param: xgs_image }
       flavor: { get_param: xgs_flavor }
-      networks: [{network: {get_resource: net_xgs_manage1}},{network: {get_resource: net_xgs_manage2}},{network: {get_resource: net_xgs_data1}},{network: {get_resource: net_xgs_data2}}]
+      networks: [{network: {get_resource: net_xgs_manage1}},{network: {get_resource: net_xgs_manage2}},{network: {get_resource: net_xgs_data1}}, {network: {get_resource: net_xgs_data2}}]
       availability_zone: { get_param: availability_zone }
       #security_groups: [{ get_resource: the_sg }]
   routed_mb:
@@ -174,29 +174,29 @@ resources:
       availability_zone: { get_param: availability_zone }
       #security_groups: [{ get_resource: the_sg }]
       user_data:
-        str_replace:
+       str_replace:
           template: |
             #!/bin/bash
             sysctl -w net.ipv4.ip_forward=1
           params:
             param1: test
 #Others
-  #the_sg:
-  #  type: OS::Neutron::SecurityGroup
-  #  properties:
-  #    name: the_sg
-  #    description: Allow Ping, SSH and Web
-  #    rules:
-  #    - protocol: icmp
-  #    - protocol: tcp
-  #      port_range_min: 22
-  #      port_range_max: 22
-  #    - protocol: tcp
-  #      port_range_min: 80
-  #      port_range_max: 80
-  #    - protocol: tcp
-  #      port_range_min: 443
-  #      port_range_max: 443
+#  the_sg:
+#    type: OS::Neutron::SecurityGroup
+#    properties:
+#      name: the_sg
+#      description: Allow Ping, SSH and Web
+#      rules:
+#      - protocol: icmp
+#      - protocol: tcp
+#        port_range_min: 22
+#        port_range_max: 22
+#      - protocol: tcp
+#        port_range_min: 80
+#        port_range_max: 80
+#      - protocol: tcp
+#        port_range_min: 443
+#        port_range_max: 443
   
 outputs:
   user_vm1_ip:
@@ -205,9 +205,9 @@ outputs:
   user_vm2_ip:
     description: The IP address of the deployed instance
     value: { get_attr: [user_vm2, addresses] }
-  routed_mb_ip:
-    description: The IP address of the routed middlebox
-    value: { get_attr: [routed_mb, addresses] }
-  trans_mb_ip:
-    description: The IP address of the transparent middlebox
-    value: { get_attr: [trans_mb, addresses] }
+  #routed_mb_ip:
+  #  description: The IP address of the routed middlebox
+  #  value: { get_attr: [routed_mb, addresses] }
+  #trans_mb_ip:
+  #  description: The IP address of the transparent middlebox
+  #  value: { get_attr: [trans_mb, addresses] }

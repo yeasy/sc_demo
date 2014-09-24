@@ -5,12 +5,6 @@ description: >
   HOT template that just defines a service policy.
   Contains middleboxes to verify base demo.
 
-#parameter_groups:
-#  label: admin group
-#  parameters:
-#    admin-auth_url
-#    admin-username
-
 parameters:
   name:
     type: string
@@ -19,11 +13,11 @@ parameters:
   compute_node:
     type: string
     description: IP of the compute node
-    default: 9.186.105.49
+    default: 9.186.100.101
   sdn_controller:
     type: string
     description: IP of the sdn controller
-    default: 9.186.105.49
+    default: 9.186.100.101
   bidirectional:
     #type: boolean #boolean is not supported in G
     type: string
@@ -34,7 +28,7 @@ parameters:
     type: string
     description: Whether to deploy the generated policy
     #YAML will load any format of y/n, true/false, on/off, yes/no as boolean!
-    default: F
+    default: T
   src:
     type: string
     description: Source net name of the policy
@@ -50,7 +44,7 @@ parameters:
   admin-auth_url:
     type: string
     description: authentication url for admin role
-    default: http://9.186.105.110:35357/v2.0
+    default: http://9.186.100.100:35357/v2.0
   admin-username:
     type: string
     description: authentication username for admin role
@@ -66,7 +60,7 @@ parameters:
   project-auth_url:
     type: string
     description: authentication url for the project
-    default: http://9.186.105.110:5000/v2.0
+    default: http://9.186.100.100:5000/v2.0
   project-username:
     type: string
     description: authentication username for the project
