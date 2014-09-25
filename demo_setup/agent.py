@@ -33,13 +33,13 @@ def run_cmd(cmd):
     #TMP_CONF = '/tmp/temp_config.conf'
     #cmd = 'heatgen --config-file %s' %(TMP_CONF)
 
-    logger.info('run cmd=%s' % (cmd))
+    logger.info('run cmd="%s"' % (cmd))
     result, error = Popen(cmd, stdout=PIPE, stderr=PIPE,
                           shell=True).communicate()
     if result:
-        logger.debug('popen result=%s' % result)
+        logger.debug('popen result="%s"' % result)
     if error:
-        logger.debug('popen error=%s' % error)
+        logger.debug('popen error="%s"' % error)
 
 if __name__ == "__main__":
     logger.info('agent started')
@@ -50,11 +50,11 @@ if __name__ == "__main__":
         try:
             with open('/tmp/heatgen_trigger', 'r') as f:
                 s = f.readline()
-                logger.debug("from heatgen_trigger get headline=%s" % (s))
+                logger.debug('from heatgen_trigger get headline="%s"' % (s))
                 if s.startswith('1'):
                     cmd = f.readline()
-                    logger.debug("from heatgen_trigger get cmd=%s" % (cmd))
-                    time.sleep(5)
+                    logger.debug('from heatgen_trigger get cmd="%s"' % (cmd))
+                    time.sleep(15)
                     run_cmd(cmd)
             if s.startswith('1'):
                 with open('/tmp/heatgen_trigger', 'w') as f:

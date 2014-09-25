@@ -22,7 +22,7 @@ parameters:
     #type: boolean #boolean is not supported in G
     type: string
     description: Whether to generate policy in both directions
-    default: F
+    default: T
   deploy:
     #type: boolean #boolean is not supported in G
     type: string
