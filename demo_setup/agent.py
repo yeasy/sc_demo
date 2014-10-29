@@ -1,6 +1,6 @@
 #!`which python`
 # -*- coding: utf8 -*-
-# This agent watch /tmp/heatgen_trigger, and run the inside command to call
+# This agent watch TRIGGER_FILE, and run the inside command to call
 # heatgen. This is a temporary solution as in heat-engine, it cannot access
 # the ssh id file of root, and cannot get port information from the computer
 # node.
@@ -12,7 +12,8 @@ import time
 from subprocess import Popen, PIPE
 
 
-LOG_FILE = '/tmp/heatgen_agent.log'
+LOG_FILE = '/tmp/sc_demo_agent.log'
+TRIGGER_FILE = '/tmp/sc_demo_agent.trigger'
 handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=1024 * 1024,
                                                backupCount=5)  # handler
 
@@ -42,22 +43,22 @@ def run_cmd(cmd):
         logger.debug('popen error="%s"' % error)
 
 if __name__ == "__main__":
-    logger.info('agent started')
+    logger.info('===agent started===')
     for i in range(1000):
         sys.stdout.flush()
         time.sleep(3)
         s = '0'
         try:
-            with open('/tmp/heatgen_trigger', 'r') as f:
+            with open(TRIGGER_FILE, 'r') as f:
                 s = f.readline()
-                logger.debug('from heatgen_trigger get headline="%s"' % (s))
+                logger.debug('From %s get headline="%s"' % (TRIGGER_FILE,s))
                 if s.startswith('1'):
                     cmd = f.readline()
-                    logger.debug('from heatgen_trigger get cmd="%s"' % (cmd))
+                    logger.debug('From %s get cmd="%s"' % (TRIGGER_FILE,cmd))
                     time.sleep(15)
                     run_cmd(cmd)
             if s.startswith('1'):
-                with open('/tmp/heatgen_trigger', 'w') as f:
+                with open(TRIGGER_FILE, 'w') as f:
                     f.write('0')
                     s = '0'
         except IOError:

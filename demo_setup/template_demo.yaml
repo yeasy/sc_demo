@@ -40,7 +40,7 @@ parameters:
   services:
     type: comma_delimited_list
     description: Middleboxes in the policy
-    default: [trans_mb, routed_mb]
+    default: [trans_mb, routed_mb1, routed_mb2]
   admin-auth_url:
     type: string
     description: authentication url for admin role
@@ -89,10 +89,12 @@ parameters:
     type: string
     description: Ingress gw address of the mb
     default: 192.168.1.1
-  routed_mb-service_type:
+  routed_mb-interface_type:
     type: string
-    description: Service type of the mb
-    default: firewall
+    description: Interface type of the mb
+    default: two_arm
+    constraints:
+      - allowed_values: [one_arm, two_arm]
   routed_mb-type:
     type: string
     description: Service type of the mb
@@ -140,20 +142,39 @@ resources:
       egress_node: {get_param: trans_mb-egress_node}
       ingress_ip: {get_param: trans_mb-ingress_ip}
       egress_ip: {get_param: trans_mb-egress_ip}
-  routed_mb:
+  #routed_mb: #Two-armed router cannot work in bidirectional case
+  #  type: OS::Neutron::RoutedMiddlebox
+  #  depends_on: [xgs_base,trans_mb]
+  #  properties:
+  #    name: routed_mb
+  #    interface_type: two_arm
+  #    type: {get_param: routed_mb-type}
+  #    ingress_cidr: {get_param: routed_mb-ingress_cidr}
+  #    egress_cidr: {get_param: routed_mb-egress_cidr}
+  #    ingress_gw_addr: {get_param: routed_mb-ingress_gw_addr}
+  #    egress_gw_addr: {get_param: routed_mb-egress_gw_addr}
+  routed_mb1:
     type: OS::Neutron::RoutedMiddlebox
     depends_on: [xgs_base,trans_mb]
     properties:
-      name: routed_mb
+      name: routed_mb1
+      interface_type: one_arm
       type: {get_param: routed_mb-type}
       ingress_cidr: {get_param: routed_mb-ingress_cidr}
-      egress_cidr: {get_param: routed_mb-egress_cidr}
       ingress_gw_addr: {get_param: routed_mb-ingress_gw_addr}
-      egress_gw_addr: {get_param: routed_mb-egress_gw_addr}
+  routed_mb2:
+    type: OS::Neutron::RoutedMiddlebox
+    depends_on: [xgs_base,trans_mb]
+    properties:
+      name: routed_mb2
+      interface_type: one_arm
+      type: {get_param: routed_mb-type}
+      ingress_cidr: {get_param: routed_mb-egress_cidr}
+      ingress_gw_addr: {get_param: routed_mb-egress_gw_addr}
 #Policy
   service_policy:
     type: OS::Neutron::ServicePolicy
-    depends_on: [trans_mb, routed_mb]
+    depends_on: [trans_mb, routed_mb1, routed_mb2]
     properties:
       name: {get_param: name}
       src: {get_param: src}

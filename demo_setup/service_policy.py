@@ -18,7 +18,8 @@ from heat.openstack.common import log as logging
 
 LOG = logging.getLogger(__name__)
 
-TMP_CONF = '/tmp/temp_config.conf'
+TMP_CONF = '/tmp/sc_demo_heatgen.conf'
+TRIGGER_FILE = '/tmp/sc_demo_agent.trigger'
 
 def _subprocess_setup():
     # Python installs a SIGPIPE handler by default. This is usually not what
@@ -159,9 +160,11 @@ class TransMiddlebox(resource.Resource):
 class RoutedMiddlebox(resource.Resource):
 
     PROPERTIES = (
-        NAME, TYPE, INGRESS_GW_ADDR, EGRESS_GW_ADDR, INGRESS_CIDR, EGRESS_CIDR,
+        NAME, INTERFACE_TYPE, TYPE, INGRESS_GW_ADDR, EGRESS_GW_ADDR, \
+                           INGRESS_CIDR, \
+                EGRESS_CIDR,
     ) = (
-        'name', 'type', 'ingress_gw_addr', 'egress_gw_addr',
+        'name','interface_type', 'type', 'ingress_gw_addr', 'egress_gw_addr',
         'ingress_cidr', 'egress_cidr',
     )
 
@@ -173,6 +176,10 @@ class RoutedMiddlebox(resource.Resource):
         NAME: properties.Schema(
             properties.Schema.STRING,
             _('Name of the middlebox.')
+        ),
+        INTERFACE_TYPE: properties.Schema(
+            properties.Schema.STRING,
+            _('Interface type of the middlebox.')
         ),
         TYPE: properties.Schema(
             properties.Schema.STRING,
@@ -204,23 +211,27 @@ class RoutedMiddlebox(resource.Resource):
 
     def handle_create(self):
         name = self.properties.get(self.NAME)
+        interface_type = self.properties.get(self.INTERFACE_TYPE)
         type = self.properties.get(self.TYPE)
         ingress_cidr = self.properties.get(self.INGRESS_CIDR)
         ingress_gw_addr = self.properties.get(self.INGRESS_GW_ADDR)
-        egress_cidr = self.properties.get(self.EGRESS_CIDR)
-        egress_gw_addr = self.properties.get(self.EGRESS_GW_ADDR)
         LOG.info('routed_mb: handle_create() is called')
-        LOG.info('name=%s, type=%s, ingress=%s,%s, egress=%s,%s'
-                 %(name,  type, ingress_cidr, ingress_gw_addr, egress_cidr,
-                   egress_gw_addr))
+        LOG.info('name=%s, type=%s, interface_type=%s, ingress=%s,%s, '
+                 %(name,  type, interface_type, ingress_cidr, ingress_gw_addr))
+        if interface_type == 'two_arm':
+            egress_cidr = self.properties.get(self.EGRESS_CIDR)
+            egress_gw_addr = self.properties.get(self.EGRESS_GW_ADDR)
+            LOG.info('egress=%s,%s' %(egress_cidr, egress_gw_addr))
 
         with open(TMP_CONF, 'a') as f:
             f.write('[%s]\n' % name)
             f.write('service_type = %s\n' % type)
+            f.write('interface_type = %s\n' % interface_type)
             f.write('ingress_cidr = %s\n' % ingress_cidr)
-            f.write('egress_cidr = %s\n' % egress_cidr)
             f.write('ingress_gw_addr = %s\n' % ingress_gw_addr)
-            f.write('egress_gw_addr = %s\n' % egress_gw_addr)
+            if interface_type == 'two_arm':
+                f.write('egress_cidr = %s\n' % egress_cidr)
+                f.write('egress_gw_addr = %s\n' % egress_gw_addr)
             f.write('\n')
 
     def handle_delete(self):
@@ -392,7 +403,7 @@ class ServicePolicy(resource.Resource):
             f.write('tenant_name = %s\n' % project_tenant_name)
             f.write('\n')
         cmd = 'heatgen --config-file %s' %(TMP_CONF)
-        with open('/tmp/heatgen_trigger', 'w') as f:
+        with open(TRIGGER_FILE, 'w') as f:
             LOG.info('Write %s into /tmp/heatgen_trigger' % cmd)
             f.write('1\n%s' % cmd)
         # We cannot call heatgen in daemonlized prog as heatgen call popen(ssh)!
